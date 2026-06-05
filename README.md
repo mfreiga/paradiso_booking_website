@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Hairstyling Paradiso — Online-Terminbuchung
 
-## Getting Started
+Buchungs-Website für den Friseursalon **Hairstyling Paradiso** (München).
+Kund:innen wählen Leistung(en), Friseur:in und Zeit; eine Slot-Engine berechnet
+die freien Termine auf Basis der echten Arbeitszeiten und bestehenden Buchungen
+(Dauer der Leistung bestimmt die Slot-Länge). Inklusive Adminbereich
+(Leistungen, Friseure & Arbeitszeiten, Termine, Wochen-Kalender, Bewertungen,
+Walk-in-Erfassung) und Bewertungs-Workflow.
 
-First, run the development server:
+## Tech-Stack
+- **Next.js 16** (App Router, React 19, TypeScript)
+- **Tailwind CSS v4**
+- **PostgreSQL** + **Prisma 7** (Driver-Adapter `@prisma/adapter-pg`; lokal via Docker)
+- **Auth.js** — Admin-Login (E-Mail + Passwort)
+- **Resend** — transaktionale E-Mails (Bestätigung, Bewertungs-Anfrage)
+- **Vitest** — Tests der Slot-Engine
+
+## Lokal starten
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# 1. Datenbank (Postgres via Docker)
+docker compose up -d --wait
+
+# 2. Abhängigkeiten installieren (generiert auch den Prisma-Client)
+npm install
+
+# 3. Schema anlegen + Beispieldaten laden
+npx prisma migrate dev
+npm run db:seed                # Menü, Friseure, Beispiel-Bewertungen
+npm run db:seed:appointments   # optionale Beispieltermine
+
+# 4. Entwicklungsserver
+npm run dev                    # http://localhost:3000  ·  Admin: /admin/login
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Umgebungsvariablen: `.env.example` nach `.env` kopieren und ausfüllen.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Tests
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm test
+```
 
-## Learn More
+## Projektstruktur (Auszug)
+- `prisma/` — Schema, Migrationen, Seed-Skripte
+- `src/lib/slots.ts` — reine Slot-Berechnung (getestet) · `src/lib/availability.ts` — DB-Anbindung
+- `src/app/book` — Kunden-Buchungsablauf · `src/app/booking/[token]` — Termin verwalten/stornieren
+- `src/app/admin` — Adminbereich · `src/app/review/[token]` — Bewertung abgeben
 
-To learn more about Next.js, take a look at the following resources:
+Die vollständige Spezifikation steht in [`SPEC.md`](./SPEC.md).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+_Entwickelt mit Unterstützung von **Claude (Anthropic), Modell: Opus**._
