@@ -1,10 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 160" role="img" aria-label="Friseur Platzhalter">
-  <rect width="240" height="160" fill="#f5f5f4"/>
-  <g fill="none" stroke="#a8a29e" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+  <rect width="240" height="160" fill="#171717"/>
+  <g fill="none" stroke="#f97316" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" opacity="0.85">
     <circle cx="84" cy="112" r="17"/>
     <circle cx="156" cy="112" r="17"/>
     <line x1="97" y1="101" x2="186" y2="46"/>
     <line x1="143" y1="101" x2="54" y2="46"/>
   </g>
-  <circle cx="120" cy="86" r="5" fill="#a8a29e"/>
+  <circle cx="120" cy="86" r="5" fill="#f97316"/>
 </svg>

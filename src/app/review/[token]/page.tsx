@@ -5,14 +5,16 @@ export const dynamic = "force-dynamic";
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="mx-auto min-h-screen max-w-md px-4 py-10">
-      <div className="mb-6 text-center">
-        <p className="text-xs font-medium uppercase tracking-[0.3em] text-orange-500">
-          Hairstyling
-        </p>
-        <p className="text-2xl font-bold tracking-tight">Paradiso</p>
+    <main className="min-h-screen bg-stone-50 text-neutral-900">
+      <div className="mx-auto max-w-md px-4 py-10">
+        <div className="mb-6 text-center">
+          <p className="text-xs font-medium uppercase tracking-[0.3em] text-orange-500">
+            Hairstyling
+          </p>
+          <p className="text-2xl font-bold tracking-tight">Paradiso</p>
+        </div>
+        {children}
       </div>
-      {children}
     </main>
   );
 }

@@ -160,6 +160,14 @@ const catalog: CategorySeed[] = [
     gender: "MEN",
     services: [{ name: "Schneiden", variants: [v("Standard", 13, 20)] }],
   },
+  {
+    name: "Studentenrabatt",
+    gender: "MEN",
+    services: [
+      { name: "Schneiden", variants: [v("Standard", 11, 20)] },
+      { name: "Schneiden (Seiten 0 mm mit Übergang)", variants: [v("Standard", 16, 30)] },
+    ],
+  },
 
   // ───────── Kosmetik & Erweiterungen (female barbers) ─────────
   {
@@ -186,32 +194,24 @@ const catalog: CategorySeed[] = [
   },
 ];
 
-// ── placeholder barbers (real names/photos added later via admin) ──
-// Placeholder names — real names/photos added later via admin.
+// ── barbers (photos/bios refined later via admin) ──
 const barbers = [
-  { name: "Bassam1", gender: "MALE" },
-  { name: "Bassam2", gender: "MALE" },
-  { name: "Bassam3", gender: "MALE" },
-  { name: "Bassam4", gender: "FEMALE" },
-  { name: "Bassam5", gender: "FEMALE" },
+  { name: "Steven", gender: "MALE", bio: "Präzise Schnitte und moderne Fades – Steven bringt jeden Look auf den Punkt." },
+  { name: "Bassam", gender: "MALE", bio: "Klassisches Barber-Handwerk mit Liebe zum Detail, von Nassrasur bis Bartpflege." },
+  { name: "Yousef", gender: "MALE", bio: "Spezialist für Übergänge und Konturen – immer am Puls der aktuellen Trends." },
+  { name: "Melina", gender: "FEMALE", bio: "Von Schnitt bis Balayage – Melina findet den Stil, der zu dir passt." },
+  { name: "Kuvia", gender: "FEMALE", bio: "Farbe, Strähnen und Styling mit Fingerspitzengefühl für besondere Anlässe." },
 ] as const;
 
-// sample weekly hours: Tue–Fri 09:00–18:00, Sat 09:00–14:00
+// real shop hours (Google Business): Mon–Fri 09:00–20:00, Sat 09:00–19:00, Sun closed
 // weekday uses Luxon convention: 1=Mon … 7=Sun
 const baseHours = [
-  { weekday: 2, startMinutes: 9 * 60, endMinutes: 18 * 60 },
-  { weekday: 3, startMinutes: 9 * 60, endMinutes: 18 * 60 },
-  { weekday: 4, startMinutes: 9 * 60, endMinutes: 18 * 60 },
-  { weekday: 5, startMinutes: 9 * 60, endMinutes: 18 * 60 },
-  { weekday: 6, startMinutes: 9 * 60, endMinutes: 14 * 60 },
-];
-
-const sampleReviews = [
-  { displayName: "Anna K.", rating: 5, comment: "Super zufrieden, komme gerne wieder!" },
-  { displayName: "Mehmet Y.", rating: 5, comment: "Bester Schnitt seit langem." },
-  { displayName: "Julia R.", rating: 4, comment: "Sehr freundlich und professionell." },
-  { displayName: "Tom B.", rating: 5, comment: "Schnell, sauber, top Beratung." },
-  { displayName: "Lena S.", rating: 4, comment: "Tolle Farbe, sehr gerne wieder." },
+  { weekday: 1, startMinutes: 9 * 60, endMinutes: 20 * 60 },
+  { weekday: 2, startMinutes: 9 * 60, endMinutes: 20 * 60 },
+  { weekday: 3, startMinutes: 9 * 60, endMinutes: 20 * 60 },
+  { weekday: 4, startMinutes: 9 * 60, endMinutes: 20 * 60 },
+  { weekday: 5, startMinutes: 9 * 60, endMinutes: 20 * 60 },
+  { weekday: 6, startMinutes: 9 * 60, endMinutes: 19 * 60 },
 ];
 
 async function main() {
@@ -258,7 +258,7 @@ async function main() {
       data: {
         name: b.name,
         gender: b.gender,
-        bio: "Platzhalter – echtes Profil & Foto folgen.",
+        bio: b.bio,
         displayOrder: bi,
         workingHours: { create: baseHours },
       },
@@ -280,12 +280,7 @@ async function main() {
   }
   await prisma.stylistService.createMany({ data: pairs });
 
-  // A couple of published reviews per barber so profiles aren't empty.
-  const reviews = createdStylists.flatMap((st, i) => [
-    { stylistId: st.id, status: "PUBLISHED" as const, ...sampleReviews[i % sampleReviews.length] },
-    { stylistId: st.id, status: "PUBLISHED" as const, ...sampleReviews[(i + 2) % sampleReviews.length] },
-  ]);
-  await prisma.review.createMany({ data: reviews });
+  // No seeded reviews — real ones arrive via the post-appointment review flow.
 
   // Settings singleton.
   await prisma.setting.upsert({ where: { id: 1 }, update: {}, create: { id: 1 } });

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { getSlots, createBooking } from "@/app/book/actions";
 
@@ -76,9 +77,9 @@ const WD_SHORT = ["", "Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 
 function Stars({ value }: { value: number }) {
   return (
-    <span className="text-amber-500" aria-label={`${value} von 5`}>
+    <span className="text-amber-400" aria-label={`${value} von 5`}>
       {"★".repeat(Math.round(value))}
-      <span className="text-neutral-300">{"★".repeat(5 - Math.round(value))}</span>
+      <span className="text-neutral-600">{"★".repeat(5 - Math.round(value))}</span>
     </span>
   );
 }
@@ -177,7 +178,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays }: Props)
   const Header = ({ title, back }: { title: string; back?: () => void }) => (
     <div className="mb-4 flex items-center gap-3">
       {back && (
-        <button onClick={back} className="text-sm text-neutral-500 hover:text-neutral-900">
+        <button onClick={back} className="text-sm text-neutral-400 hover:text-white">
           ← Zurück
         </button>
       )}
@@ -186,14 +187,14 @@ export function BookingWizard({ categories, barbers, bookingWindowDays }: Props)
   );
 
   const SummaryBar = ({ cta, onClick, disabled }: { cta: string; onClick: () => void; disabled?: boolean }) => (
-    <div className="sticky bottom-0 mt-6 flex items-center justify-between gap-3 border-t border-neutral-200 bg-white/90 py-3 backdrop-blur">
+    <div className="sticky bottom-0 mt-6 flex items-center justify-between gap-3 border-t border-white/10 bg-neutral-950/90 py-3 backdrop-blur">
       <div className="text-sm">
         <div className="font-medium">
           {selected.size} {selected.size === 1 ? "Leistung" : "Leistungen"} ·{" "}
           {showFrom ? "ab " : ""}
           {euro(totalPrice)}
         </div>
-        <div className="text-neutral-500">≈ {fmtDur(totalDuration)}</div>
+        <div className="text-neutral-400">≈ {fmtDur(totalDuration)}</div>
       </div>
       <button
         onClick={onClick}
@@ -206,16 +207,19 @@ export function BookingWizard({ categories, barbers, bookingWindowDays }: Props)
   );
 
   return (
-    <main className="mx-auto min-h-screen max-w-xl px-4 py-8">
+    <main className="min-h-screen bg-neutral-950 text-neutral-100">
+      <div className="mx-auto max-w-xl px-4 py-8">
       <div className="mb-6 text-center">
-        <p className="text-xs font-medium uppercase tracking-[0.3em] text-orange-500">Hairstyling</p>
-        <h1 className="text-2xl font-bold tracking-tight">Paradiso · Termin buchen</h1>
+        <p className="text-xs font-medium uppercase tracking-[0.3em] text-orange-400">Hairstyling</p>
+        <h1 className="font-display text-2xl font-semibold tracking-tight">
+          <Link href="/" className="transition hover:text-orange-400">Paradiso</Link> · Termin buchen
+        </h1>
       </div>
 
       {/* STEP: services */}
       {step === "services" && (
         <div>
-          <div className="mb-5 flex rounded-full bg-neutral-100 p-1">
+          <div className="mb-5 flex rounded-full bg-white/10 p-1">
             {(["MEN", "WOMEN"] as const).map((g) => (
               <button
                 key={g}
@@ -223,7 +227,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays }: Props)
                   setGender(g);
                   setSelected(new Set());
                 }}
-                className={`flex-1 rounded-full px-4 py-2 text-center text-sm font-medium outline-none transition ${gender === g ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-500 hover:text-neutral-700"}`}
+                className={`flex-1 rounded-full px-4 py-2 text-center text-sm font-medium outline-none transition ${gender === g ? "bg-orange-500 text-white shadow-sm" : "text-neutral-400 hover:text-white"}`}
               >
                 {g === "WOMEN" ? "Damen" : "Herren"}
               </button>
@@ -232,7 +236,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays }: Props)
           <Header title="Was möchtest du?" />
           {genderCats.some((c) => c.services.some((s) => s.isPopular)) && (
             <div className="mb-5">
-              <div className="mb-2 text-sm font-medium text-neutral-500">Beliebt</div>
+              <div className="mb-2 text-sm font-medium text-neutral-400">Beliebt</div>
               <div className="flex flex-wrap gap-2">
                 {genderCats
                   .flatMap((c) => c.services)
@@ -241,7 +245,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays }: Props)
                     <button
                       key={s.id}
                       onClick={() => toggle(s.id)}
-                      className={`rounded-full border px-4 py-2 text-sm ${selected.has(s.id) ? "border-orange-500 bg-orange-50 text-orange-700" : "border-neutral-300 hover:border-neutral-400"}`}
+                      className={`rounded-full border px-4 py-2 text-sm ${selected.has(s.id) ? "border-orange-500 bg-orange-500/15 text-orange-300" : "border-white/15 hover:border-white/40"}`}
                     >
                       {s.name}
                     </button>
@@ -251,9 +255,9 @@ export function BookingWizard({ categories, barbers, bookingWindowDays }: Props)
           )}
           <div className="grid grid-cols-1 items-start gap-2 sm:grid-cols-2">
             {genderCats.map((c) => (
-              <details key={c.id} className="rounded-xl border border-neutral-200 bg-white">
+              <details key={c.id} className="rounded-xl border border-white/10 bg-white/5">
                 <summary className="cursor-pointer px-4 py-3 text-sm font-medium">{c.name}</summary>
-                <ul className="border-t border-neutral-100">
+                <ul className="border-t border-white/10">
                   {c.services.map((s) => {
                     const min = Math.min(...s.variants.map((v) => v.priceCents));
                     const from = isTiered(s) || s.variants.some((v) => ["FROM", "ON_REQUEST"].includes(v.priceType));
@@ -262,16 +266,16 @@ export function BookingWizard({ categories, barbers, bookingWindowDays }: Props)
                       <li key={s.id}>
                         <button
                           onClick={() => toggle(s.id)}
-                          className={`flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-sm ${sel ? "bg-orange-50" : "hover:bg-neutral-50"}`}
+                          className={`flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-sm ${sel ? "bg-orange-500/10" : "hover:bg-white/5"}`}
                         >
                           <span className="flex items-center gap-2">
-                            <span className={`flex h-5 w-5 items-center justify-center rounded border ${sel ? "border-orange-500 bg-orange-500 text-white" : "border-neutral-300"}`}>
+                            <span className={`flex h-5 w-5 items-center justify-center rounded border ${sel ? "border-orange-500 bg-orange-500 text-white" : "border-neutral-600"}`}>
                               {sel ? "✓" : ""}
                             </span>
                             {s.name}
-                            {s.isAddOn && <span className="rounded-full bg-neutral-100 px-1.5 text-xs text-neutral-500">Extra</span>}
+                            {s.isAddOn && <span className="rounded-full bg-white/10 px-1.5 text-xs text-neutral-400">Extra</span>}
                           </span>
-                          <span className="shrink-0 text-neutral-500">
+                          <span className="shrink-0 text-neutral-400">
                             {from ? "ab " : ""}
                             {euro(min)}
                           </span>
@@ -296,7 +300,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays }: Props)
       {step === "length" && (
         <div>
           <Header title="Wie lang sind deine Haare?" back={() => setStep("services")} />
-          <p className="mb-4 text-sm text-neutral-500">
+          <p className="mb-4 text-sm text-neutral-400">
             Nicht sicher? Wähle deine beste Einschätzung – dein:e Friseur:in bestätigt es vor Ort.
           </p>
           <div className="grid grid-cols-3 gap-3">
@@ -307,7 +311,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays }: Props)
                   setLength(l);
                   setStep("barber");
                 }}
-                className={`rounded-2xl border p-6 font-medium ${length === l ? "border-orange-500 bg-orange-50" : "border-neutral-200 hover:border-orange-400"}`}
+                className={`rounded-2xl border p-6 font-medium ${length === l ? "border-orange-500 bg-orange-500/15" : "border-white/15 hover:border-orange-400"}`}
               >
                 {l}
               </button>
@@ -321,7 +325,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays }: Props)
         <div>
           <Header title="Bei wem?" back={() => setStep(needsLength ? "length" : "services")} />
           {qualifiedBarbers.length === 0 ? (
-            <p className="text-sm text-neutral-500">
+            <p className="text-sm text-neutral-400">
               Keine:r unserer Friseur:innen bietet diese Kombination an. Bitte Auswahl anpassen.
             </p>
           ) : (
@@ -337,7 +341,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays }: Props)
                     setStep("time");
                     if (d) loadSlots(b.id, d);
                   }}
-                  className="flex flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white text-left transition hover:border-orange-400 hover:shadow-sm"
+                  className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 text-left transition hover:border-orange-400"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -356,10 +360,10 @@ export function BookingWizard({ categories, barbers, bookingWindowDays }: Props)
                       <div className="mt-0.5 text-xs text-neutral-400">Noch keine Bewertungen</div>
                     )}
                     {b.bio && (
-                      <p className="mt-1 line-clamp-2 text-xs text-neutral-500">{b.bio}</p>
+                      <p className="mt-1 line-clamp-2 text-xs text-neutral-400">{b.bio}</p>
                     )}
                     {b.reviews[0]?.comment && (
-                      <p className="mt-1 line-clamp-2 text-xs italic text-neutral-600">
+                      <p className="mt-1 line-clamp-2 text-xs italic text-neutral-400">
                         „{b.reviews[0].comment}“
                       </p>
                     )}
@@ -383,7 +387,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays }: Props)
                   setDate(d.date);
                   loadSlots(barber.id, d.date);
                 }}
-                className={`shrink-0 rounded-xl border px-3 py-2 text-sm ${date === d.date ? "border-orange-500 bg-orange-50 text-orange-700" : "border-neutral-300"}`}
+                className={`shrink-0 rounded-xl border px-3 py-2 text-sm ${date === d.date ? "border-orange-500 bg-orange-500/15 text-orange-300" : "border-white/15"}`}
               >
                 {d.label}
               </button>
@@ -392,7 +396,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays }: Props)
           {loadingSlots || pending ? (
             <p className="text-sm text-neutral-400">Lade Zeiten…</p>
           ) : slots.length === 0 ? (
-            <p className="text-sm text-neutral-500">An diesem Tag sind keine Zeiten frei. Bitte anderen Tag wählen.</p>
+            <p className="text-sm text-neutral-400">An diesem Tag sind keine Zeiten frei. Bitte anderen Tag wählen.</p>
           ) : (
             <div className="grid grid-cols-4 gap-2">
               {slots.map((s) => (
@@ -402,7 +406,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays }: Props)
                     setSlot(s);
                     setStep("details");
                   }}
-                  className="rounded-lg border border-neutral-300 py-2 text-sm hover:border-orange-500 hover:bg-orange-50"
+                  className="rounded-lg border border-white/15 py-2 text-sm hover:border-orange-500 hover:bg-orange-500/10"
                 >
                   {fmtTime(s)}
                 </button>
@@ -416,9 +420,9 @@ export function BookingWizard({ categories, barbers, bookingWindowDays }: Props)
       {step === "details" && barber && slot && (
         <div>
           <Header title="Deine Daten" back={() => setStep("time")} />
-          <div className="mb-4 rounded-xl bg-neutral-50 p-4 text-sm">
+          <div className="mb-4 rounded-xl border border-white/10 bg-white/5 p-4 text-sm">
             <div className="font-medium">{items.map((it) => it.service.name + (isTiered(it.service) ? ` (${effLength})` : "")).join(", ")}</div>
-            <div className="text-neutral-500">
+            <div className="text-neutral-400">
               {barber.name} · {fmtTime(slot)} · {new Date(slot).toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "long", timeZone: "Europe/Berlin" })}
             </div>
             <div className="mt-1">
@@ -426,7 +430,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays }: Props)
               {euro(totalPrice)} · {fmtDur(totalDuration)}
             </div>
           </div>
-          {error && <div className="mb-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+          {error && <div className="mb-3 rounded-lg bg-red-500/10 p-3 text-sm text-red-400">{error}</div>}
           <div className="space-y-3">
             {([
               ["name", "Name", "text"],
@@ -434,22 +438,22 @@ export function BookingWizard({ categories, barbers, bookingWindowDays }: Props)
               ["phone", "Telefon", "tel"],
             ] as const).map(([k, label, type]) => (
               <div key={k}>
-                <label className="block text-sm font-medium text-neutral-700">{label}</label>
+                <label className="block text-sm font-medium text-neutral-300">{label}</label>
                 <input
                   type={type}
                   value={form[k]}
                   onChange={(e) => setForm({ ...form, [k]: e.target.value })}
-                  className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-orange-500"
+                  className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm outline-none focus:border-orange-500"
                 />
               </div>
             ))}
             <div>
-              <label className="block text-sm font-medium text-neutral-700">Anmerkung (optional)</label>
+              <label className="block text-sm font-medium text-neutral-300">Anmerkung (optional)</label>
               <textarea
                 value={form.note}
                 onChange={(e) => setForm({ ...form, note: e.target.value })}
                 rows={2}
-                className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-orange-500"
+                className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm outline-none focus:border-orange-500"
               />
             </div>
           </div>
@@ -467,12 +471,12 @@ export function BookingWizard({ categories, barbers, bookingWindowDays }: Props)
       {/* STEP: done */}
       {step === "done" && barber && slot && (
         <div className="text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-100 text-3xl text-green-600">✓</div>
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-500/15 text-3xl text-green-400">✓</div>
           <h2 className="text-xl font-semibold">Termin gebucht!</h2>
-          <p className="mt-1 text-sm text-neutral-500">Wir freuen uns auf dich, {form.name}.</p>
-          <div className="mx-auto mt-5 max-w-sm rounded-xl border border-neutral-200 bg-white p-4 text-left text-sm">
+          <p className="mt-1 text-sm text-neutral-400">Wir freuen uns auf dich, {form.name}.</p>
+          <div className="mx-auto mt-5 max-w-sm rounded-xl border border-white/10 bg-white/5 p-4 text-left text-sm">
             <div className="font-medium">{items.map((it) => it.service.name).join(", ")}</div>
-            <div className="text-neutral-500">
+            <div className="text-neutral-400">
               {barber.name} · {new Date(slot).toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "long", timeZone: "Europe/Berlin" })} um {fmtTime(slot)} Uhr
             </div>
             <div className="mt-1">
@@ -482,7 +486,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays }: Props)
           </div>
           <a
             href={`/booking/${manageToken}`}
-            className="mt-5 inline-block rounded-full border border-neutral-300 px-6 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
+            className="mt-5 inline-block rounded-full border border-white/20 px-6 py-2.5 text-sm font-medium text-neutral-200 hover:bg-white/10"
           >
             Termin ansehen oder stornieren
           </a>
@@ -491,6 +495,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays }: Props)
           </p>
         </div>
       )}
+      </div>
     </main>
   );
 }
