@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { getSlots, createBooking } from "@/app/book/actions";
+import { dict, dateLocale, type Locale } from "@/lib/i18n";
+import { LanguageSwitch } from "./language-switch";
 
 // ── types (match /book/page.tsx) ─────────────────────────────
 type Variant = {
@@ -32,22 +34,25 @@ type Barber = {
   reviewCount: number;
   reviews: { displayName: string; rating: number; comment: string | null }[];
 };
-type Props = { categories: Category[]; barbers: Barber[]; bookingWindowDays: number };
+type Props = {
+  categories: Category[];
+  barbers: Barber[];
+  bookingWindowDays: number;
+  locale: Locale;
+};
 
 type Length = "Kurz" | "Mittel" | "Lang";
 type Step = "services" | "length" | "barber" | "time" | "details" | "done";
 
 // ── helpers ──────────────────────────────────────────────────
-const euro = (cents: number) =>
-  new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(cents / 100);
-const fmtTime = (iso: string) =>
-  new Intl.DateTimeFormat("de-DE", {
+const euroFmt = (cents: number, loc: string) =>
+  new Intl.NumberFormat(loc, { style: "currency", currency: "EUR" }).format(cents / 100);
+const fmtTimeFmt = (iso: string, loc: string) =>
+  new Intl.DateTimeFormat(loc, {
     hour: "2-digit",
     minute: "2-digit",
     timeZone: "Europe/Berlin",
   }).format(new Date(iso));
-const fmtDur = (m: number) =>
-  m < 60 ? `${m} Min` : m % 60 ? `${Math.floor(m / 60)} Std ${m % 60} Min` : `${Math.floor(m / 60)} Std`;
 
 const isTiered = (s: Service) => s.variants.length > 1;
 
@@ -73,7 +78,6 @@ function isoWeekday(d: Date) {
 function ymd(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
-const WD_SHORT = ["", "Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 
 function Stars({ value }: { value: number }) {
   return (
@@ -85,7 +89,19 @@ function Stars({ value }: { value: number }) {
 }
 
 // ── component ────────────────────────────────────────────────
-export function BookingWizard({ categories, barbers, bookingWindowDays }: Props) {
+export function BookingWizard({ categories, barbers, bookingWindowDays, locale }: Props) {
+  const t = dict[locale].book;
+  const loc = dateLocale[locale];
+  const WD_SHORT = dict[locale].weekdaysShort;
+  const euro = (cents: number) => euroFmt(cents, loc);
+  const fmtTime = (iso: string) => fmtTimeFmt(iso, loc);
+  const fmtDur = (m: number) =>
+    m < 60
+      ? `${m} ${t.min}`
+      : m % 60
+        ? `${Math.floor(m / 60)} ${t.hours} ${m % 60} ${t.min}`
+        : `${Math.floor(m / 60)} ${t.hours}`;
+
   const [step, setStep] = useState<Step>("services");
   const [gender, setGender] = useState<"MEN" | "WOMEN">("MEN");
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -179,7 +195,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays }: Props)
     <div className="mb-4 flex items-center gap-3">
       {back && (
         <button onClick={back} className="text-sm text-neutral-400 hover:text-white">
-          ← Zurück
+          {t.back}
         </button>
       )}
       <h2 className="text-lg font-semibold">{title}</h2>
@@ -190,8 +206,8 @@ export function BookingWizard({ categories, barbers, bookingWindowDays }: Props)
     <div className="sticky bottom-0 mt-6 flex items-center justify-between gap-3 border-t border-white/10 bg-neutral-950/90 py-3 backdrop-blur">
       <div className="text-sm">
         <div className="font-medium">
-          {selected.size} {selected.size === 1 ? "Leistung" : "Leistungen"} ·{" "}
-          {showFrom ? "ab " : ""}
+          {selected.size} {selected.size === 1 ? t.service : t.services} ·{" "}
+          {showFrom ? `${t.from} ` : ""}
           {euro(totalPrice)}
         </div>
         <div className="text-neutral-400">≈ {fmtDur(totalDuration)}</div>
@@ -209,10 +225,13 @@ export function BookingWizard({ categories, barbers, bookingWindowDays }: Props)
   return (
     <main className="min-h-screen bg-neutral-950 text-neutral-100">
       <div className="mx-auto max-w-xl px-4 py-8">
+      <div className="mb-2 flex justify-end">
+        <LanguageSwitch locale={locale} />
+      </div>
       <div className="mb-6 text-center">
-        <p className="text-xs font-medium uppercase tracking-[0.3em] text-orange-400">Hairstyling</p>
+        <p className="text-xs font-medium uppercase tracking-[0.3em] text-orange-400">{t.kicker}</p>
         <h1 className="font-display text-2xl font-semibold tracking-tight">
-          <Link href="/" className="transition hover:text-orange-400">Paradiso</Link> · Termin buchen
+          <Link href="/" className="transition hover:text-orange-400">Paradiso</Link> · {t.title}
         </h1>
       </div>
 
@@ -229,14 +248,14 @@ export function BookingWizard({ categories, barbers, bookingWindowDays }: Props)
                 }}
                 className={`flex-1 rounded-full px-4 py-2 text-center text-sm font-medium outline-none transition ${gender === g ? "bg-orange-500 text-white shadow-sm" : "text-neutral-400 hover:text-white"}`}
               >
-                {g === "WOMEN" ? "Damen" : "Herren"}
+                {g === "WOMEN" ? t.women : t.men}
               </button>
             ))}
           </div>
-          <Header title="Was möchtest du?" />
+          <Header title={t.whatTitle} />
           {genderCats.some((c) => c.services.some((s) => s.isPopular)) && (
             <div className="mb-5">
-              <div className="mb-2 text-sm font-medium text-neutral-400">Beliebt</div>
+              <div className="mb-2 text-sm font-medium text-neutral-400">{t.popular}</div>
               <div className="flex flex-wrap gap-2">
                 {genderCats
                   .flatMap((c) => c.services)
@@ -273,10 +292,10 @@ export function BookingWizard({ categories, barbers, bookingWindowDays }: Props)
                               {sel ? "✓" : ""}
                             </span>
                             {s.name}
-                            {s.isAddOn && <span className="rounded-full bg-white/10 px-1.5 text-xs text-neutral-400">Extra</span>}
+                            {s.isAddOn && <span className="rounded-full bg-white/10 px-1.5 text-xs text-neutral-400">{t.extra}</span>}
                           </span>
                           <span className="shrink-0 text-neutral-400">
-                            {from ? "ab " : ""}
+                            {from ? `${t.from} ` : ""}
                             {euro(min)}
                           </span>
                         </button>
@@ -289,7 +308,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays }: Props)
           </div>
           {selected.size > 0 && (
             <SummaryBar
-              cta="Weiter"
+              cta={t.next}
               onClick={() => setStep(needsLength ? "length" : "barber")}
             />
           )}
@@ -299,10 +318,8 @@ export function BookingWizard({ categories, barbers, bookingWindowDays }: Props)
       {/* STEP: length */}
       {step === "length" && (
         <div>
-          <Header title="Wie lang sind deine Haare?" back={() => setStep("services")} />
-          <p className="mb-4 text-sm text-neutral-400">
-            Nicht sicher? Wähle deine beste Einschätzung – dein:e Friseur:in bestätigt es vor Ort.
-          </p>
+          <Header title={t.lengthTitle} back={() => setStep("services")} />
+          <p className="mb-4 text-sm text-neutral-400">{t.lengthHint}</p>
           <div className="grid grid-cols-3 gap-3">
             {(["Kurz", "Mittel", "Lang"] as Length[]).map((l) => (
               <button
@@ -313,7 +330,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays }: Props)
                 }}
                 className={`rounded-2xl border p-6 font-medium ${length === l ? "border-orange-500 bg-orange-500/15" : "border-white/15 hover:border-orange-400"}`}
               >
-                {l}
+                {t.lengths[l]}
               </button>
             ))}
           </div>
@@ -323,11 +340,9 @@ export function BookingWizard({ categories, barbers, bookingWindowDays }: Props)
       {/* STEP: barber */}
       {step === "barber" && (
         <div>
-          <Header title="Bei wem?" back={() => setStep(needsLength ? "length" : "services")} />
+          <Header title={t.whoTitle} back={() => setStep(needsLength ? "length" : "services")} />
           {qualifiedBarbers.length === 0 ? (
-            <p className="text-sm text-neutral-400">
-              Keine:r unserer Friseur:innen bietet diese Kombination an. Bitte Auswahl anpassen.
-            </p>
+            <p className="text-sm text-neutral-400">{t.noCombo}</p>
           ) : (
             <div className="grid grid-cols-2 gap-3">
               {qualifiedBarbers.map((b) => (
@@ -357,7 +372,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays }: Props)
                         <span className="text-xs text-neutral-400">({b.reviewCount})</span>
                       </div>
                     ) : (
-                      <div className="mt-0.5 text-xs text-neutral-400">Noch keine Bewertungen</div>
+                      <div className="mt-0.5 text-xs text-neutral-400">{t.noReviews}</div>
                     )}
                     {b.bio && (
                       <p className="mt-1 line-clamp-2 text-xs text-neutral-400">{b.bio}</p>
@@ -378,7 +393,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays }: Props)
       {/* STEP: time */}
       {step === "time" && barber && (
         <div>
-          <Header title="Wann?" back={() => setStep("barber")} />
+          <Header title={t.whenTitle} back={() => setStep("barber")} />
           <div className="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4 pb-1">
             {upcomingDays(barber).map((d) => (
               <button
@@ -394,9 +409,9 @@ export function BookingWizard({ categories, barbers, bookingWindowDays }: Props)
             ))}
           </div>
           {loadingSlots || pending ? (
-            <p className="text-sm text-neutral-400">Lade Zeiten…</p>
+            <p className="text-sm text-neutral-400">{t.loadingSlots}</p>
           ) : slots.length === 0 ? (
-            <p className="text-sm text-neutral-400">An diesem Tag sind keine Zeiten frei. Bitte anderen Tag wählen.</p>
+            <p className="text-sm text-neutral-400">{t.noSlots}</p>
           ) : (
             <div className="grid grid-cols-4 gap-2">
               {slots.map((s) => (
@@ -419,23 +434,23 @@ export function BookingWizard({ categories, barbers, bookingWindowDays }: Props)
       {/* STEP: details */}
       {step === "details" && barber && slot && (
         <div>
-          <Header title="Deine Daten" back={() => setStep("time")} />
+          <Header title={t.detailsTitle} back={() => setStep("time")} />
           <div className="mb-4 rounded-xl border border-white/10 bg-white/5 p-4 text-sm">
-            <div className="font-medium">{items.map((it) => it.service.name + (isTiered(it.service) ? ` (${effLength})` : "")).join(", ")}</div>
+            <div className="font-medium">{items.map((it) => it.service.name + (isTiered(it.service) ? ` (${t.lengths[effLength]})` : "")).join(", ")}</div>
             <div className="text-neutral-400">
-              {barber.name} · {fmtTime(slot)} · {new Date(slot).toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "long", timeZone: "Europe/Berlin" })}
+              {barber.name} · {fmtTime(slot)} · {new Date(slot).toLocaleDateString(loc, { weekday: "long", day: "2-digit", month: "long", timeZone: "Europe/Berlin" })}
             </div>
             <div className="mt-1">
-              {showFrom ? "ab " : ""}
+              {showFrom ? `${t.from} ` : ""}
               {euro(totalPrice)} · {fmtDur(totalDuration)}
             </div>
           </div>
           {error && <div className="mb-3 rounded-lg bg-red-500/10 p-3 text-sm text-red-400">{error}</div>}
           <div className="space-y-3">
             {([
-              ["name", "Name", "text"],
-              ["email", "E-Mail", "email"],
-              ["phone", "Telefon", "tel"],
+              ["name", t.name, "text"],
+              ["email", t.email, "email"],
+              ["phone", t.phone, "tel"],
             ] as const).map(([k, label, type]) => (
               <div key={k}>
                 <label className="block text-sm font-medium text-neutral-300">{label}</label>
@@ -448,7 +463,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays }: Props)
               </div>
             ))}
             <div>
-              <label className="block text-sm font-medium text-neutral-300">Anmerkung (optional)</label>
+              <label className="block text-sm font-medium text-neutral-300">{t.note}</label>
               <textarea
                 value={form.note}
                 onChange={(e) => setForm({ ...form, note: e.target.value })}
@@ -462,9 +477,9 @@ export function BookingWizard({ categories, barbers, bookingWindowDays }: Props)
             disabled={pending || !form.name || !form.email || !form.phone}
             className="mt-5 w-full rounded-full bg-orange-500 px-6 py-3 text-sm font-medium text-white disabled:opacity-40"
           >
-            {pending ? "Wird gebucht…" : "Termin verbindlich buchen"}
+            {pending ? t.submitting : t.submit}
           </button>
-          <p className="mt-2 text-center text-xs text-neutral-400">Bezahlung vor Ort im Salon.</p>
+          <p className="mt-2 text-center text-xs text-neutral-400">{t.payOnSite}</p>
         </div>
       )}
 
@@ -472,27 +487,25 @@ export function BookingWizard({ categories, barbers, bookingWindowDays }: Props)
       {step === "done" && barber && slot && (
         <div className="text-center">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-500/15 text-3xl text-green-400">✓</div>
-          <h2 className="text-xl font-semibold">Termin gebucht!</h2>
-          <p className="mt-1 text-sm text-neutral-400">Wir freuen uns auf dich, {form.name}.</p>
+          <h2 className="text-xl font-semibold">{t.doneTitle}</h2>
+          <p className="mt-1 text-sm text-neutral-400">{t.doneText} {form.name}.</p>
           <div className="mx-auto mt-5 max-w-sm rounded-xl border border-white/10 bg-white/5 p-4 text-left text-sm">
             <div className="font-medium">{items.map((it) => it.service.name).join(", ")}</div>
             <div className="text-neutral-400">
-              {barber.name} · {new Date(slot).toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "long", timeZone: "Europe/Berlin" })} um {fmtTime(slot)} Uhr
+              {barber.name} · {new Date(slot).toLocaleDateString(loc, { weekday: "long", day: "2-digit", month: "long", timeZone: "Europe/Berlin" })} {t.at} {fmtTime(slot)}{t.clock ? ` ${t.clock}` : ""}
             </div>
             <div className="mt-1">
-              {showFrom ? "ab " : ""}
-              {euro(totalPrice)} · {fmtDur(totalDuration)} · Zahlung vor Ort
+              {showFrom ? `${t.from} ` : ""}
+              {euro(totalPrice)} · {fmtDur(totalDuration)} · {t.payNote}
             </div>
           </div>
           <a
             href={`/booking/${manageToken}`}
             className="mt-5 inline-block rounded-full border border-white/20 px-6 py-2.5 text-sm font-medium text-neutral-200 hover:bg-white/10"
           >
-            Termin ansehen oder stornieren
+            {t.manage}
           </a>
-          <p className="mt-4 text-xs text-neutral-400">
-            Eine Bestätigung per E-Mail folgt, sobald der E-Mail-Versand aktiv ist.
-          </p>
+          <p className="mt-4 text-xs text-neutral-400">{t.emailNote}</p>
         </div>
       )}
       </div>

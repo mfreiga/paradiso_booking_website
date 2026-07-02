@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git --version)",
+      "Bash(gh --version)",
+      "Bash(gh auth *)",
+      "Bash(npm --version)",
+      "Bash(brew --version)",
+      "Bash(git config *)",
+      "Read(//Users/josefbeham-elparony/**)",
+      "Read(//opt/homebrew/bin/**)"
+    ]
+  }
+}
