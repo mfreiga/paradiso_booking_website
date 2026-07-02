@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { BookingWizard } from "@/components/booking-wizard";
+import { getLocale } from "@/lib/locale";
 
 export const dynamic = "force-dynamic";
 
@@ -74,11 +75,14 @@ export default async function BookPage() {
     };
   });
 
+  const locale = await getLocale();
+
   return (
     <BookingWizard
       categories={wizardCategories}
       barbers={barbers}
       bookingWindowDays={setting?.bookingWindowDays ?? 60}
+      locale={locale}
     />
   );
 }
