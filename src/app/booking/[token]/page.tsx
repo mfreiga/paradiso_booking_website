@@ -1,17 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { formatEur } from "@/lib/format";
+import { dict, dateLocale } from "@/lib/i18n";
+import { getLocale } from "@/lib/locale";
+import { tName } from "@/lib/service-i18n";
 import { cancelBooking } from "./actions";
 
 export const dynamic = "force-dynamic";
-
-const longDateTime = new Intl.DateTimeFormat("de-DE", {
-  weekday: "long",
-  day: "2-digit",
-  month: "long",
-  hour: "2-digit",
-  minute: "2-digit",
-  timeZone: "Europe/Berlin",
-});
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
@@ -35,6 +29,16 @@ export default async function ManageBookingPage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
+  const locale = await getLocale();
+  const t = dict[locale].manage;
+  const longDateTime = new Intl.DateTimeFormat(dateLocale[locale], {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/Berlin",
+  });
   const appt = await prisma.appointment.findUnique({
     where: { manageToken: token },
     include: { stylist: { select: { name: true } }, items: true },
@@ -43,9 +47,7 @@ export default async function ManageBookingPage({
   if (!appt) {
     return (
       <Shell>
-        <p className="text-center text-neutral-600">
-          Dieser Termin wurde nicht gefunden.
-        </p>
+        <p className="text-center text-neutral-600">{t.notFound}</p>
       </Shell>
     );
   }
@@ -58,13 +60,13 @@ export default async function ManageBookingPage({
 
   return (
     <Shell>
-      <h2 className="text-xl font-semibold">Dein Termin</h2>
+      <h2 className="text-xl font-semibold">{t.title}</h2>
       <div className="mt-4 rounded-xl border border-neutral-200 bg-white p-4 text-sm">
         <div className="font-medium">
           {appt.items
             .map(
               (i) =>
-                i.nameSnapshot +
+                tName(i.nameSnapshot, locale) +
                 (i.variantLabelSnapshot && i.variantLabelSnapshot !== "Standard"
                   ? ` (${i.variantLabelSnapshot})`
                   : ""),
@@ -72,34 +74,37 @@ export default async function ManageBookingPage({
             .join(", ")}
         </div>
         <div className="text-neutral-500">
-          {appt.stylist.name} · {longDateTime.format(appt.startAt)} Uhr
+          {appt.stylist.name} · {longDateTime.format(appt.startAt)}
+          {locale === "de" ? " Uhr" : ""}
         </div>
         <div className="mt-1">
-          {appt.priceIsFrom ? "ab " : ""}
-          {formatEur(appt.totalPriceCents)} · Zahlung vor Ort
+          {appt.priceIsFrom ? `${t.from} ` : ""}
+          {formatEur(appt.totalPriceCents)} · {t.payNote}
         </div>
       </div>
 
       {appt.status === "CANCELLED" ? (
         <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
-          Dieser Termin wurde storniert.
+          {t.cancelled}
         </p>
       ) : appt.status === "COMPLETED" ? (
         <p className="mt-4 rounded-lg bg-neutral-100 p-3 text-sm text-neutral-600">
-          Dieser Termin ist abgeschlossen.
+          {t.completed}
         </p>
       ) : !active ? (
-        <p className="mt-4 text-sm text-neutral-500">Status: {appt.status}</p>
+        <p className="mt-4 text-sm text-neutral-500">
+          {t.status}: {appt.status}
+        </p>
       ) : tooLate ? (
         <p className="mt-4 text-sm text-neutral-500">
-          Eine Online-Stornierung ist so kurzfristig nicht mehr möglich. Bitte ruf
-          uns an{phone ? `: ${phone}` : ""}.
+          {t.tooLate}
+          {phone ? `: ${phone}` : ""}.
         </p>
       ) : (
         <form action={cancelBooking} className="mt-4">
           <input type="hidden" name="token" value={token} />
           <button className="rounded-full border border-red-300 px-6 py-2.5 text-sm font-medium text-red-700 transition hover:bg-red-50">
-            Termin stornieren
+            {t.cancel}
           </button>
         </form>
       )}

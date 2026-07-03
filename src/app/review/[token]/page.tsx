@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { ReviewForm } from "@/components/review-form";
+import { dict } from "@/lib/i18n";
+import { getLocale } from "@/lib/locale";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +27,8 @@ export default async function ReviewPage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
+  const locale = await getLocale();
+  const t = dict[locale].review;
   const appt = await prisma.appointment.findUnique({
     where: { reviewToken: token },
     include: { stylist: { select: { name: true } }, review: true },
@@ -33,7 +37,7 @@ export default async function ReviewPage({
   if (!appt) {
     return (
       <Shell>
-        <p className="text-center text-neutral-600">Dieser Link ist ungültig.</p>
+        <p className="text-center text-neutral-600">{t.invalid}</p>
       </Shell>
     );
   }
@@ -41,7 +45,7 @@ export default async function ReviewPage({
     return (
       <Shell>
         <p className="rounded-lg bg-green-50 p-4 text-center text-sm text-green-700">
-          Danke, du hast diesen Termin bereits bewertet.
+          {t.already}
         </p>
       </Shell>
     );
@@ -49,9 +53,7 @@ export default async function ReviewPage({
   if (appt.status === "CANCELLED") {
     return (
       <Shell>
-        <p className="text-center text-neutral-600">
-          Für stornierte Termine ist keine Bewertung möglich.
-        </p>
+        <p className="text-center text-neutral-600">{t.cancelledNo}</p>
       </Shell>
     );
   }
@@ -59,18 +61,16 @@ export default async function ReviewPage({
   if (!past) {
     return (
       <Shell>
-        <p className="text-center text-neutral-600">
-          Eine Bewertung ist erst nach deinem Termin möglich.
-        </p>
+        <p className="text-center text-neutral-600">{t.tooEarly}</p>
       </Shell>
     );
   }
 
   return (
     <Shell>
-      <h2 className="text-xl font-semibold">Termin bewerten</h2>
+      <h2 className="text-xl font-semibold">{t.title}</h2>
       <div className="mt-4">
-        <ReviewForm token={token} barberName={appt.stylist.name} />
+        <ReviewForm token={token} barberName={appt.stylist.name} locale={locale} />
       </div>
     </Shell>
   );
