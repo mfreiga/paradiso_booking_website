@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { getSlots, createBooking } from "@/app/book/actions";
 import { dict, dateLocale, type Locale } from "@/lib/i18n";
+import { tName } from "@/lib/service-i18n";
 import { LanguageSwitch } from "./language-switch";
 
 // ── types (match /book/page.tsx) ─────────────────────────────
@@ -266,7 +267,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays, locale }
                       onClick={() => toggle(s.id)}
                       className={`rounded-full border px-4 py-2 text-sm ${selected.has(s.id) ? "border-orange-500 bg-orange-500/15 text-orange-300" : "border-white/15 hover:border-white/40"}`}
                     >
-                      {s.name}
+                      {tName(s.name, locale)}
                     </button>
                   ))}
               </div>
@@ -275,7 +276,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays, locale }
           <div className="grid grid-cols-1 items-start gap-2 sm:grid-cols-2">
             {genderCats.map((c) => (
               <details key={c.id} className="rounded-xl border border-white/10 bg-white/5">
-                <summary className="cursor-pointer px-4 py-3 text-sm font-medium">{c.name}</summary>
+                <summary className="cursor-pointer px-4 py-3 text-sm font-medium">{tName(c.name, locale)}</summary>
                 <ul className="border-t border-white/10">
                   {c.services.map((s) => {
                     const min = Math.min(...s.variants.map((v) => v.priceCents));
@@ -291,7 +292,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays, locale }
                             <span className={`flex h-5 w-5 items-center justify-center rounded border ${sel ? "border-orange-500 bg-orange-500 text-white" : "border-neutral-600"}`}>
                               {sel ? "✓" : ""}
                             </span>
-                            {s.name}
+                            {tName(s.name, locale)}
                             {s.isAddOn && <span className="rounded-full bg-white/10 px-1.5 text-xs text-neutral-400">{t.extra}</span>}
                           </span>
                           <span className="shrink-0 text-neutral-400">
@@ -436,7 +437,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays, locale }
         <div>
           <Header title={t.detailsTitle} back={() => setStep("time")} />
           <div className="mb-4 rounded-xl border border-white/10 bg-white/5 p-4 text-sm">
-            <div className="font-medium">{items.map((it) => it.service.name + (isTiered(it.service) ? ` (${t.lengths[effLength]})` : "")).join(", ")}</div>
+            <div className="font-medium">{items.map((it) => tName(it.service.name, locale) + (isTiered(it.service) ? ` (${t.lengths[effLength]})` : "")).join(", ")}</div>
             <div className="text-neutral-400">
               {barber.name} · {fmtTime(slot)} · {new Date(slot).toLocaleDateString(loc, { weekday: "long", day: "2-digit", month: "long", timeZone: "Europe/Berlin" })}
             </div>
@@ -490,7 +491,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays, locale }
           <h2 className="text-xl font-semibold">{t.doneTitle}</h2>
           <p className="mt-1 text-sm text-neutral-400">{t.doneText} {form.name}.</p>
           <div className="mx-auto mt-5 max-w-sm rounded-xl border border-white/10 bg-white/5 p-4 text-left text-sm">
-            <div className="font-medium">{items.map((it) => it.service.name).join(", ")}</div>
+            <div className="font-medium">{items.map((it) => tName(it.service.name, locale)).join(", ")}</div>
             <div className="text-neutral-400">
               {barber.name} · {new Date(slot).toLocaleDateString(loc, { weekday: "long", day: "2-digit", month: "long", timeZone: "Europe/Berlin" })} {t.at} {fmtTime(slot)}{t.clock ? ` ${t.clock}` : ""}
             </div>

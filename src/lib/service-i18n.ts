@@ -1,0 +1,83 @@
+import type { Locale } from "./i18n";
+
+// English translations for DB-stored category & service names.
+// German is the source of truth (matches prisma/seed.ts); if a name has no
+// entry here we fall back to the German name, so nothing ever breaks.
+const en: Record<string, string> = {
+  // ── categories ──
+  "Schneiden & Styling": "Cut & Styling",
+  Pflege: "Care",
+  Färben: "Colour",
+  Blondierung: "Bleaching",
+  Strähnen: "Highlights",
+  "Dauerhafte Umformung": "Perm",
+  Keratinbehandlung: "Keratin Treatment",
+  "Mädchen bis 10 Jahre": "Girls up to 10",
+  "Besondere Anlässe": "Special Occasions",
+  "Farbe und Tönung": "Colour & Tint",
+  "Chemische Glättung": "Chemical Straightening",
+  "Jungs bis 10 Jahre": "Boys up to 10",
+  Studentenrabatt: "Student Discount",
+  "Make-up / Kosmetik": "Make-up / Cosmetics",
+  "Haarverlängerung / Haarverdichtung": "Hair Extensions",
+
+  // ── services ──
+  "Schneiden, Trocknen": "Cut, dry",
+  "Waschen, Schneiden, Föhnen": "Wash, cut, blow-dry",
+  "Waschen, Schneiden, Trocknen": "Wash, cut, dry",
+  "Waschen, Föhnen/legen": "Wash, blow-dry / set",
+  "Nur Föhnen (ohne Waschen)": "Blow-dry only (no wash)",
+  "Pony schneiden": "Fringe trim",
+  Augenbrauen: "Eyebrows",
+  Conditioner: "Conditioner",
+  "Intensive Kur": "Deep treatment",
+  "Haare Waschen": "Hair wash",
+  "Vitaplex (inkl. Kopfmassage)": "Vitaplex (incl. scalp massage)",
+  Ansatzfarbe: "Root colour",
+  Farbe: "Colour",
+  Tönung: "Tint",
+  "Ansätze Blondierung": "Root bleach",
+  "Softaufhellung (Blondierwäsche)": "Soft lightening (bleach wash)",
+  "Glossing (Abmattierung)": "Glossing",
+  Haubensträhnen: "Cap highlights",
+  "Foliensträhnen (Oberkopf)": "Foil highlights (top)",
+  "Foliensträhnen (halber Kopf)": "Foil highlights (half head)",
+  "Foliensträhnen (ganzer Kopf)": "Foil highlights (full head)",
+  "Balayage (inkl. Glossing)": "Balayage (incl. glossing)",
+  "Dauerwelle klassisch": "Classic perm",
+  "Dauerwelle mit Technik": "Perm with technique",
+  "Keratinbehandlung inkl. Glättung": "Keratin treatment incl. straightening",
+  "Haar-Botox": "Hair botox",
+  Flächen: "Sections",
+  Hochsteckfrisur: "Updo",
+  "Braut (inkl. Probehochstecken & Beratung)": "Bridal (incl. trial updo & consultation)",
+  Schneiden: "Haircut",
+  "Schneiden (Seiten 0 mm mit Übergang)": "Haircut (sides 0 mm with fade)",
+  "Waschen, Schneiden, Styling": "Wash, cut, styling",
+  "Haare Nassrasur": "Head wet shave",
+  "Bart mit Übergang": "Beard with fade",
+  "Bart Kontur": "Beard line-up",
+  "Bart Rasur": "Beard shave",
+  "Bart Farbe": "Beard colour",
+  "Musterrasur (pro Seite)": "Pattern shave (per side)",
+  Linienrasur: "Line shave",
+  Dauerwelle: "Perm",
+  "Farbe, Schneiden, Styling": "Colour, cut, styling",
+  "Farbe bei längeren Haaren (Aufschlag)": "Colour for longer hair (surcharge)",
+  Glättung: "Straightening",
+  "Tages Make-up": "Day make-up",
+  "Abend Make-up": "Evening make-up",
+  "Augenbrauen Farbe": "Eyebrow tint",
+  "Wimpern Farbe": "Eyelash tint",
+  Zupfen: "Eyebrow shaping",
+  Konturierung: "Contouring",
+  "1 Tape (Paar)": "1 tape (pair)",
+  "4 Tape (Paar)": "4 tapes (pair)",
+  "20 Tape (Paar)": "20 tapes (pair)",
+  "Ab 20 Tape (Paar)": "20+ tapes (pair)",
+};
+
+/** Translate a DB-stored category/service name for display. */
+export function tName(name: string, locale: Locale): string {
+  return locale === "en" ? (en[name] ?? name) : name;
+}
