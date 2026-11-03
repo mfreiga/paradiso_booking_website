@@ -101,6 +101,14 @@ export async function toggleBarberActive(formData: FormData) {
   await requireAdmin();
   const id = String(formData.get("id"));
   const next = formData.get("next") === "true";
+  // Deactivating hides the barber, but their booked customers would still come:
+  // show those bookings first and only continue on explicit confirmation.
+  if (!next && formData.get("confirm") !== "1") {
+    const upcoming = await prisma.appointment.count({
+      where: { stylistId: id, status: { in: ["PENDING", "CONFIRMED"] }, startAt: { gt: new Date() } },
+    });
+    if (upcoming > 0) redirect(`/admin/barbers/${id}?warn=${upcoming}`);
+  }
   await prisma.stylist.update({ where: { id }, data: { isActive: next } });
   refreshAll(id);
 }

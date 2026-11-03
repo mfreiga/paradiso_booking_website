@@ -19,12 +19,14 @@ export async function setAppointmentStatus(formData: FormData) {
     include: { stylist: { select: { name: true } }, items: { select: { nameSnapshot: true } } },
   });
   if (!before) return;
+  // "Done" / "no-show" only make sense once the appointment has started.
+  if ((status === "COMPLETED" || status === "NO_SHOW") && before.startAt.getTime() > Date.now()) return;
   await prisma.appointment.update({ where: { id }, data: { status } });
   const locale = before.locale === "en" ? "en" : "de";
 
   try {
-    // Done → ask for a review. Cancelled by the salon → let the customer know.
-    if (status === "COMPLETED" && before.status !== "COMPLETED" && before.customerEmail) {
+    // Done → ask for a review (once; the hourly job may already have). Cancelled by the salon → tell the customer.
+    if (status === "COMPLETED" && !before.reviewRequestedAt && before.customerEmail) {
       await sendReviewRequest({
         to: before.customerEmail,
         locale,
@@ -32,6 +34,7 @@ export async function setAppointmentStatus(formData: FormData) {
         barberName: before.stylist.name,
         reviewUrl: `${siteUrl()}/review/${before.reviewToken}`,
       });
+      await prisma.appointment.update({ where: { id }, data: { reviewRequestedAt: new Date() } });
     }
     if (
       status === "CANCELLED" &&

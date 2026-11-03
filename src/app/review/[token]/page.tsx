@@ -3,24 +3,11 @@ import { ReviewForm } from "@/components/review-form";
 import { dict } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale";
 import { isPast } from "@/lib/time";
+import { CustomerShell } from "@/components/customer-shell";
+import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
-
-function Shell({ children }: { children: React.ReactNode }) {
-  return (
-    <main className="min-h-screen bg-stone-50 text-neutral-900">
-      <div className="mx-auto max-w-md px-4 py-10">
-        <div className="mb-6 text-center">
-          <p className="text-xs font-medium uppercase tracking-[0.3em] text-orange-500">
-            Hairstyling
-          </p>
-          <p className="text-2xl font-bold tracking-tight">Paradiso</p>
-        </div>
-        {children}
-      </div>
-    </main>
-  );
-}
+export const metadata: Metadata = { title: "Bewerten", robots: { index: false } };
 
 export default async function ReviewPage({
   params,
@@ -37,42 +24,42 @@ export default async function ReviewPage({
 
   if (!appt) {
     return (
-      <Shell>
-        <p className="text-center text-neutral-600">{t.invalid}</p>
-      </Shell>
+      <CustomerShell locale={locale}>
+        <p className="text-center text-neutral-400">{t.invalid}</p>
+      </CustomerShell>
     );
   }
   if (appt.review) {
     return (
-      <Shell>
-        <p className="rounded-lg bg-green-50 p-4 text-center text-sm text-green-700">
+      <CustomerShell locale={locale}>
+        <p className="rounded-lg bg-green-500/10 p-4 text-center text-sm text-green-400">
           {t.already}
         </p>
-      </Shell>
+      </CustomerShell>
     );
   }
   if (appt.status === "CANCELLED") {
     return (
-      <Shell>
-        <p className="text-center text-neutral-600">{t.cancelledNo}</p>
-      </Shell>
+      <CustomerShell locale={locale}>
+        <p className="text-center text-neutral-400">{t.cancelledNo}</p>
+      </CustomerShell>
     );
   }
   const past = appt.status === "COMPLETED" || isPast(appt.startAt);
   if (!past) {
     return (
-      <Shell>
-        <p className="text-center text-neutral-600">{t.tooEarly}</p>
-      </Shell>
+      <CustomerShell locale={locale}>
+        <p className="text-center text-neutral-400">{t.tooEarly}</p>
+      </CustomerShell>
     );
   }
 
   return (
-    <Shell>
+    <CustomerShell locale={locale}>
       <h2 className="text-xl font-semibold">{t.title}</h2>
       <div className="mt-4">
         <ReviewForm token={token} barberName={appt.stylist.name} locale={locale} />
       </div>
-    </Shell>
+    </CustomerShell>
   );
 }

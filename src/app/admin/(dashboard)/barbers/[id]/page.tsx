@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
+import { DateTime } from "luxon";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-guard";
 import { BarberPhotoUpload } from "@/components/barber-photo-upload";
@@ -16,13 +17,13 @@ export default async function EditBarberPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ saved?: string; created?: string; error?: string }>;
+  searchParams: Promise<{ saved?: string; created?: string; error?: string; warn?: string }>;
 }) {
   await requireAdmin();
   const { id } = await params;
   const sp = await searchParams;
 
-  const [barber, categories, bookings] = await Promise.all([
+  const [barber, categories, bookings, upcoming] = await Promise.all([
     prisma.stylist.findUnique({
       where: { id },
       select: {
@@ -42,6 +43,11 @@ export default async function EditBarberPage({
       include: { services: { where: { isActive: true }, orderBy: { displayOrder: "asc" }, select: { id: true, name: true } } },
     }),
     prisma.appointment.count({ where: { stylistId: id } }),
+    prisma.appointment.findMany({
+      where: { stylistId: id, status: { in: ["PENDING", "CONFIRMED"] }, startAt: { gt: new Date() } },
+      orderBy: { startAt: "asc" },
+      select: { id: true, startAt: true, customerName: true },
+    }),
   ]);
   if (!barber) notFound();
 
@@ -68,6 +74,34 @@ export default async function EditBarberPage({
         </form>
       </div>
 
+      {sp.warn && upcoming.length > 0 && (
+        <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+          <p className="font-medium">
+            {barber.name} hat noch {upcoming.length} {upcoming.length === 1 ? "kommenden Termin" : "kommende Termine"}.
+          </p>
+          <p className="mt-1">
+            Nach dem Deaktivieren kann niemand mehr neu bei {barber.name} buchen, die bestehenden Termine bleiben aber.
+            Verschieben oder absagen kannst du sie unter{" "}
+            <Link href={`/admin/appointments?barber=${barber.id}`} className="underline">
+              Termine
+            </Link>
+            .
+          </p>
+          <ul className="mt-2 list-disc pl-5">
+            {upcoming.slice(0, 8).map((a) => (
+              <li key={a.id}>
+                {DateTime.fromJSDate(a.startAt).setZone("Europe/Berlin").setLocale("de").toFormat("ccc dd.MM., HH:mm")} · {a.customerName}
+              </li>
+            ))}
+          </ul>
+          <form action={toggleBarberActive} className="mt-3">
+            <input type="hidden" name="id" value={barber.id} />
+            <input type="hidden" name="next" value="false" />
+            <input type="hidden" name="confirm" value="1" />
+            <button className="rounded-lg bg-amber-600 px-3 py-1.5 font-medium text-white hover:bg-amber-700">Trotzdem deaktivieren</button>
+          </form>
+        </div>
+      )}
       {sp.created && (
         <p className="mt-4 rounded-lg bg-green-50 p-3 text-sm text-green-700">
           Angelegt. Jetzt noch ein Foto hochladen und die Leistungen prüfen.

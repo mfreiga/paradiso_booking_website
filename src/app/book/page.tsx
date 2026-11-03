@@ -1,9 +1,12 @@
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { BookingWizard } from "@/components/booking-wizard";
 import { getLocale } from "@/lib/locale";
 import { emailTransport } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = { title: "Termin buchen" };
 
 export default async function BookPage() {
   const [categories, stylists, setting] = await Promise.all([
@@ -40,10 +43,12 @@ export default async function BookPage() {
     .map((c) => ({
       id: c.id,
       name: c.name,
+      nameEn: c.nameEn,
       gender: c.gender,
       services: c.services.map((s) => ({
         id: s.id,
         name: s.name,
+        nameEn: s.nameEn,
         isAddOn: s.isAddOn,
         isPopular: s.isPopular,
         variants: s.variants.map((v) => ({

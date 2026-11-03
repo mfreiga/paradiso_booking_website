@@ -1,4 +1,7 @@
+import type { Metadata } from "next";
 import { loginWithPassword } from "./actions";
+
+export const metadata: Metadata = { title: "Anmelden" };
 
 export default async function AdminLoginPage({
   searchParams,
@@ -16,7 +19,9 @@ export default async function AdminLoginPage({
         <form action={loginWithPassword} className="mt-6 space-y-4">
           {error && (
             <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
-              E-Mail oder Passwort ist falsch.
+              {error === "locked"
+                ? "Zu viele Fehlversuche. Bitte in 15 Minuten nochmal probieren."
+                : "E-Mail oder Passwort ist falsch."}
             </div>
           )}
           <div>

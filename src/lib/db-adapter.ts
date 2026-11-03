@@ -7,13 +7,14 @@ import { PrismaPg } from "@prisma/adapter-pg";
 // 1–2 h while reading back looked fine. Pinning each session to UTC makes the
 // stored data correct everywhere. We SET it after connect instead of passing a
 // startup `options` param, which managed poolers (Neon/Supabase) may reject.
+// `onConnect` is awaited before the pool hands the client to Prisma; if it
+// fails the connection is discarded rather than used with the wrong zone.
 export function createDbAdapter(connectionString = process.env.DATABASE_URL) {
-  const pool = new pg.Pool({ connectionString });
-  pool.on("connect", (client) => {
-    // Queued before any Prisma query on this client, so it always runs first.
-    client.query("SET TIME ZONE 'UTC'").catch((e) => {
-      console.error("could not set session timezone to UTC:", e);
-    });
+  const pool = new pg.Pool({
+    connectionString,
+    onConnect: async (client) => {
+      await client.query("SET TIME ZONE 'UTC'");
+    },
   });
   return new PrismaPg(pool);
 }

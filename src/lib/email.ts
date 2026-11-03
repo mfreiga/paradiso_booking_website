@@ -318,6 +318,112 @@ export async function sendCancellation(d: CancellationEmailData): Promise<void> 
   await Promise.all(jobs);
 }
 
+// ── moved ──────────────────────────────────────────────────────────────────
+export interface MovedEmailData {
+  to: string;
+  locale: Locale;
+  customerName: string;
+  barberName: string;
+  oldStartAt: Date;
+  startAt: Date;
+  services: string[];
+  manageUrl: string;
+  calendarUrl: string;
+  ics: string;
+  by: "customer" | "shop";
+}
+
+export function renderMoved(d: MovedEmailData) {
+  const l = d.locale;
+  const services = d.services.map((s) => tName(s, l)).join(", ");
+  const newWhen = `${fmtDay(d.startAt, l)}, ${clock(d.startAt, l)}`;
+  const oldWhen = `${fmtDay(d.oldStartAt, l)}, ${clock(d.oldStartAt, l)}`;
+  if (l === "en") {
+    const intro = d.by === "shop" ? "we had to move your appointment. Here's the new time:" : "your appointment has been moved. Here's the new time:";
+    return {
+      subject: `Your appointment has been moved to ${newWhen}`,
+      html: layout(
+        "en",
+        `<p>Hi ${esc(d.customerName)},</p><p>${intro}</p>${detailsBox([esc(services), `<strong>${esc(newWhen)}</strong>`, `with ${esc(d.barberName)}`, `<s>${esc(oldWhen)}</s>`])}<p>${button(d.calendarUrl, "Add to calendar")}${button(d.manageUrl, "View or cancel", false)}</p>`,
+        `${SHOP.name} · ${SHOP.address}`,
+      ),
+      text: `Hi ${d.customerName},\n\n${intro}\n\n${services}\n${newWhen}\nwith ${d.barberName}\n(before: ${oldWhen})\n\nView or cancel: ${d.manageUrl}\nAdd to calendar: ${d.calendarUrl}`,
+    };
+  }
+  const intro = d.by === "shop" ? "wir mussten deinen Termin verschieben. Das ist die neue Zeit:" : "dein Termin ist verschoben. Das ist die neue Zeit:";
+  return {
+    subject: `Dein Termin ist verschoben auf ${newWhen}`,
+    html: layout(
+      "de",
+      `<p>Hallo ${esc(d.customerName)},</p><p>${intro}</p>${detailsBox([esc(services), `<strong>${esc(newWhen)}</strong>`, `bei ${esc(d.barberName)}`, `<s>${esc(oldWhen)}</s>`])}<p>${button(d.calendarUrl, "In den Kalender eintragen")}${button(d.manageUrl, "Termin ansehen oder absagen", false)}</p>`,
+      `${SHOP.name} · ${SHOP.address}`,
+    ),
+    text: `Hallo ${d.customerName},\n\n${intro}\n\n${services}\n${newWhen}\nbei ${d.barberName}\n(vorher: ${oldWhen})\n\nAnsehen oder absagen: ${d.manageUrl}\nIn den Kalender eintragen: ${d.calendarUrl}`,
+  };
+}
+
+export async function sendMoved(d: MovedEmailData): Promise<void> {
+  const jobs: Promise<void>[] = [];
+  const shop = shopRecipients();
+  if (d.to) {
+    jobs.push(
+      deliver({
+        to: d.to,
+        ...renderMoved(d),
+        replyTo: shop[0],
+        attachments: [{ filename: "paradiso-termin.ics", content: d.ics, contentType: "text/calendar; charset=utf-8; method=PUBLISH" }],
+      }),
+    );
+  }
+  if (d.by === "customer" && shop.length) {
+    const from = `${fmtShortDay(d.oldStartAt)} ${fmtTime(d.oldStartAt, "de")}`;
+    const to = `${fmtShortDay(d.startAt)} ${fmtTime(d.startAt, "de")}`;
+    jobs.push(
+      deliver({
+        to: shop,
+        subject: `Verschoben: ${d.customerName} · ${from} → ${to}`,
+        html: layout("de", `<p>${esc(d.customerName)} hat online verschoben:</p>${detailsBox([`${esc(fmtDay(d.startAt, "de"))}, ${clock(d.startAt, "de")}`, `${esc(d.barberName)} · ${esc(d.services.join(", "))}`, `<s>${esc(fmtDay(d.oldStartAt, "de"))}, ${clock(d.oldStartAt, "de")}</s>`])}`, `${SHOP.name} · automatische Nachricht der Website`),
+        text: `${d.customerName} hat online verschoben:\n\nNeu: ${fmtDay(d.startAt, "de")}, ${clock(d.startAt, "de")}\nVorher: ${fmtDay(d.oldStartAt, "de")}, ${clock(d.oldStartAt, "de")}\n${d.barberName} · ${d.services.join(", ")}`,
+      }),
+    );
+  }
+  await Promise.all(jobs);
+}
+
+// ── reminder (day before) ──────────────────────────────────────────────────
+export interface ReminderEmailData {
+  to: string;
+  locale: Locale;
+  customerName: string;
+  barberName: string;
+  startAt: Date;
+  services: string[];
+  manageUrl: string;
+  shopPhone: string;
+}
+
+export function renderReminder(d: ReminderEmailData) {
+  const l = d.locale;
+  const services = d.services.map((s) => tName(s, l)).join(", ");
+  const when = `${fmtDay(d.startAt, l)}, ${clock(d.startAt, l)}`;
+  if (l === "en") {
+    return {
+      subject: `Reminder: your appointment on ${when}`,
+      html: layout("en", `<p>Hi ${esc(d.customerName)},</p><p>just a quick reminder of your appointment:</p>${detailsBox([esc(services), esc(when), `with ${esc(d.barberName)}`])}<p>Can't make it? Please cancel or move it so someone else can have the slot.</p><p>${button(d.manageUrl, "View, move or cancel")}</p>`, `${SHOP.name} · ${SHOP.address} · ${esc(d.shopPhone)}`),
+      text: `Hi ${d.customerName},\n\njust a quick reminder of your appointment:\n\n${services}\n${when}\nwith ${d.barberName}\n\nCan't make it? Please cancel or move it: ${d.manageUrl}\n\n${SHOP.name}, ${SHOP.address}, ${d.shopPhone}`,
+    };
+  }
+  return {
+    subject: `Erinnerung: dein Termin am ${when}`,
+    html: layout("de", `<p>Hallo ${esc(d.customerName)},</p><p>kurze Erinnerung an deinen Termin:</p>${detailsBox([esc(services), esc(when), `bei ${esc(d.barberName)}`])}<p>Du kannst nicht? Dann sag bitte ab oder verschieb den Termin, damit jemand anderes den Platz bekommt.</p><p>${button(d.manageUrl, "Ansehen, verschieben oder absagen")}</p>`, `${SHOP.name} · ${SHOP.address} · ${esc(d.shopPhone)}`),
+    text: `Hallo ${d.customerName},\n\nkurze Erinnerung an deinen Termin:\n\n${services}\n${when}\nbei ${d.barberName}\n\nDu kannst nicht? Dann sag bitte ab oder verschieb ihn: ${d.manageUrl}\n\n${SHOP.name}, ${SHOP.address}, ${d.shopPhone}`,
+  };
+}
+
+export async function sendReminder(d: ReminderEmailData): Promise<void> {
+  await deliver({ to: d.to, ...renderReminder(d), replyTo: shopRecipients()[0] });
+}
+
 // ── review request ─────────────────────────────────────────────────────────
 export interface ReviewRequestData {
   to: string;

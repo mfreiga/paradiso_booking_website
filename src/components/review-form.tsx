@@ -24,7 +24,7 @@ export function ReviewForm({
 
   if (done) {
     return (
-      <p className="rounded-lg bg-green-50 p-4 text-sm text-green-700">
+      <p className="rounded-lg bg-green-500/10 p-4 text-sm text-green-400">
         {t.thanks}
       </p>
     );
@@ -45,7 +45,7 @@ export function ReviewForm({
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-neutral-600">
+      <p className="text-sm text-neutral-300">
         {t.how} {barberName}?
       </p>
       <div className="flex gap-1 text-4xl">
@@ -56,7 +56,7 @@ export function ReviewForm({
             onMouseEnter={() => setHover(n)}
             onMouseLeave={() => setHover(0)}
             onClick={() => setRating(n)}
-            className={(hover || rating) >= n ? "text-amber-500" : "text-neutral-300"}
+            className={(hover || rating) >= n ? "text-amber-400" : "text-neutral-700"}
             aria-label={`${n} ${t.stars}`}
           >
             ★
@@ -69,9 +69,9 @@ export function ReviewForm({
         rows={3}
         maxLength={REVIEW_COMMENT_MAX}
         placeholder={t.placeholder}
-        className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-orange-500"
+        className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white outline-none focus:border-orange-500"
       />
-      {error && <p className="text-sm text-red-700">{error}</p>}
+      {error && <p className="text-sm text-red-400">{error}</p>}
       <button
         onClick={submit}
         disabled={pending}

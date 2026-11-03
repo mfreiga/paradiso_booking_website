@@ -3,8 +3,9 @@
 import { randomBytes } from "node:crypto";
 import { DateTime } from "luxon";
 import { prisma } from "@/lib/prisma";
-import { getAvailableSlots } from "@/lib/availability";
-import { sendBookingConfirmation } from "@/lib/email";
+import { getAvailabilityRange, getAvailableSlots } from "@/lib/availability";
+import { emailTransport, sendBookingConfirmation } from "@/lib/email";
+import { notifyShop } from "@/lib/push";
 import { siteUrl } from "@/lib/site-url";
 import { BOOKING_LIMITS } from "@/lib/booking-limits";
 import { appointmentIcs } from "@/lib/appointment-ics";
@@ -12,21 +13,74 @@ import type { Locale } from "@/lib/i18n";
 
 const SHOP_TZ = process.env.SHOP_TIMEZONE ?? "Europe/Berlin";
 
+async function durationOf(variantIds: string[]): Promise<number> {
+  if (!Array.isArray(variantIds) || variantIds.length === 0 || variantIds.length > 20) return 0;
+  const variants = await prisma.serviceVariant.findMany({
+    where: { id: { in: variantIds } },
+    select: { durationMinutes: true },
+  });
+  return variants.reduce((s, v) => s + v.durationMinutes, 0);
+}
+
+/** Only active barbers, max. 10 — these actions are public endpoints. */
+async function activeIds(stylistIds: string[]): Promise<string[]> {
+  if (!Array.isArray(stylistIds) || stylistIds.length === 0) return [];
+  const rows = await prisma.stylist.findMany({
+    where: { id: { in: stylistIds.slice(0, 10) }, isActive: true },
+    select: { id: true },
+  });
+  const ok = new Set(rows.map((r) => r.id));
+  return stylistIds.filter((id) => ok.has(id)); // keep the caller's (display) order
+}
+
 /** Available start times (ISO strings) for a barber + day + selected variants. */
 export async function getSlots(
   stylistId: string,
   date: string,
   variantIds: string[],
 ): Promise<string[]> {
-  if (!stylistId || !date || variantIds.length === 0) return [];
-  const variants = await prisma.serviceVariant.findMany({
-    where: { id: { in: variantIds } },
-    select: { durationMinutes: true },
-  });
-  const durationMinutes = variants.reduce((s, v) => s + v.durationMinutes, 0);
+  if (!stylistId || !date) return [];
+  const durationMinutes = await durationOf(variantIds);
   if (durationMinutes <= 0) return [];
   const slots = await getAvailableSlots({ stylistId, date, durationMinutes });
   return slots.map((d) => d.toISOString());
+}
+
+/**
+ * Free start times across several barbers ("no preference"). Each time is
+ * assigned to the first barber (in the given order) who is free then.
+ */
+export async function getSlotsAny(
+  stylistIds: string[],
+  date: string,
+  variantIds: string[],
+): Promise<{ iso: string; stylistId: string }[]> {
+  const [ids, durationMinutes] = await Promise.all([activeIds(stylistIds), durationOf(variantIds)]);
+  if (!date || ids.length === 0 || durationMinutes <= 0) return [];
+  const perBarber = await Promise.all(ids.map((stylistId) => getAvailableSlots({ stylistId, date, durationMinutes })));
+  const byTime = new Map<string, string>();
+  perBarber.forEach((slots, i) => {
+    for (const d of slots) if (!byTime.has(d.toISOString())) byTime.set(d.toISOString(), ids[i]);
+  });
+  return [...byTime.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([iso, stylistId]) => ({ iso, stylistId }));
+}
+
+/** Days ("YYYY-MM-DD") in a month on which at least one of the barbers has a free slot. */
+export async function getOpenDays(
+  stylistIds: string[],
+  month: string,
+  variantIds: string[],
+): Promise<string[]> {
+  if (!/^\d{4}-\d{2}$/.test(month)) return [];
+  const [ids, durationMinutes] = await Promise.all([activeIds(stylistIds), durationOf(variantIds)]);
+  if (ids.length === 0 || durationMinutes <= 0) return [];
+  const start = DateTime.fromISO(`${month}-01`, { zone: SHOP_TZ });
+  const from = start.toISODate()!;
+  const to = start.endOf("month").toISODate()!;
+  const ranges = await Promise.all(ids.map((stylistId) => getAvailabilityRange({ stylistId, from, to, durationMinutes })));
+  const open = new Set<string>();
+  for (const r of ranges) for (const [day, slots] of r) if (slots.length > 0) open.add(day);
+  return [...open].sort();
 }
 
 export interface CreateBookingInput {
@@ -224,9 +278,21 @@ export async function createBooking(
         cancelCutoffHours: Math.round((setting?.cancellationCutoffMin ?? 120) / 60),
         adminUrl: `${siteUrl()}/admin/appointments`,
       });
+      // Only a real send counts (the dashboard flags bookings without one).
+      if (emailTransport() !== "log") {
+        await prisma.appointment.update({ where: { id: appt.id }, data: { confirmationSentAt: new Date() } });
+      }
     } catch (e) {
       console.error("confirmation email failed:", e);
     }
+
+    const when = DateTime.fromJSDate(start).setZone(SHOP_TZ).setLocale("de").toFormat("ccc dd.MM., HH:mm");
+    const barberName = (await prisma.stylist.findUnique({ where: { id: input.stylistId }, select: { name: true } }))?.name ?? "";
+    await notifyShop({
+      title: `Neue Buchung: ${when}`,
+      body: `${name} · ${barberName} · ${variants.map((v) => v.service.name).join(", ")}`,
+      url: `/admin/calendar?view=day&date=${dateStr}`,
+    });
 
     return { ok: true, manageToken };
   } catch (e) {

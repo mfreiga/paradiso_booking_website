@@ -84,7 +84,12 @@ const en: Record<string, string> = {
   "Farbe, Strähnen und Hochsteckfrisuren.": "Colour, highlights and updos.",
 };
 
-/** Translate a DB-stored category/service name for display. */
-export function tName(name: string, locale: Locale): string {
-  return locale === "en" ? (en[name] ?? name) : name;
+/**
+ * Translate a DB-stored category/service name for display. In English an
+ * explicit `nameEn` (set in the admin) wins, then this built-in list, then the
+ * German name.
+ */
+export function tName(name: string, locale: Locale, nameEn?: string | null): string {
+  if (locale !== "en") return name;
+  return nameEn?.trim() || en[name] || name;
 }

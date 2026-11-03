@@ -53,6 +53,8 @@ enum ReviewStatus {
 model Category {
   id           String    @id @default(cuid())
   name         String
+  /// English display name (falls back to the built-in translation, then German).
+  nameEn       String?
   gender       Gender
   displayOrder Int       @default(0)
   isActive     Boolean   @default(true)
@@ -66,6 +68,7 @@ model Category {
 model Service {
   id               String            @id @default(cuid())
   name             String
+  nameEn           String?
   description      String?
   gender           Gender
   categoryId       String
@@ -201,6 +204,10 @@ model Appointment {
   source               AppointmentSource @default(CUSTOMER)
   /// Customer's site language at booking time ("de" | "en") — used for emails.
   locale               String            @default("de")
+  /// Email bookkeeping: set when sent, so cron runs never send twice.
+  confirmationSentAt   DateTime?         @db.Timestamptz(3)
+  reminderSentAt       DateTime?         @db.Timestamptz(3)
+  reviewRequestedAt    DateTime?         @db.Timestamptz(3)
   items                AppointmentItem[]
   review               Review?
   createdAt            DateTime          @default(now())
@@ -257,6 +264,11 @@ model Setting {
   shopName              String   @default("Hairstyling Paradiso")
   shopPhone             String   @default("089 - 32 66 81 82")
   shopAddress           String?
+  googleRating          Float    @default(4.3)
+  googleReviewCount     Int      @default(382)
+  /// Web-push keys, generated on first use (no env setup needed).
+  vapidPublicKey        String?
+  vapidPrivateKey       String?
   updatedAt             DateTime @updatedAt
 }
 
@@ -307,4 +319,23 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+/// Failed admin logins, for a simple brute-force lock (see src/lib/login-throttle.ts).
+model LoginAttempt {
+  id        String   @id @default(cuid())
+  key       String
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([key, createdAt])
+}
+
+/// Browser/phone that receives push notifications for new bookings (admin only).
+model PushSubscription {
+  id        String   @id @default(cuid())
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  label     String?
+  createdAt DateTime @default(now())
 }

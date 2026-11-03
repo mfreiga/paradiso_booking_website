@@ -10,6 +10,7 @@ const nav = [
   { href: "/admin/services", label: "Leistungen" },
   { href: "/admin/barbers", label: "Friseure" },
   { href: "/admin/reviews", label: "Bewertungen" },
+  { href: "/admin/settings", label: "Einstellungen" },
 ];
 
 export default async function AdminLayout({
@@ -31,15 +32,15 @@ export default async function AdminLayout({
           <Link href="/admin" className="font-semibold">
             Paradiso Admin
           </Link>
-          <nav className="hidden flex-1 gap-4 text-sm lg:flex">
+          <nav className="hidden flex-1 gap-4 text-sm xl:flex">
             {nav.map((item) => (
               <Link key={item.href} href={item.href} className="whitespace-nowrap text-neutral-600 hover:text-neutral-900">
                 {item.label}
               </Link>
             ))}
           </nav>
-          {/* Phones/tablets: a menu button that opens a vertical list. */}
-          <details className="group lg:hidden">
+          {/* Phones, tablets, small laptops: a menu button that opens a vertical list. */}
+          <details className="group xl:hidden">
             <summary className="cursor-pointer list-none rounded-lg border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700 [&::-webkit-details-marker]:hidden">
               <span className="group-open:hidden">☰ Menü</span>
               <span className="hidden group-open:inline">✕ Schließen</span>
@@ -61,7 +62,7 @@ export default async function AdminLayout({
               </form>
             </nav>
           </details>
-          <div className="hidden items-center gap-3 text-sm text-neutral-500 lg:flex">
+          <div className="hidden items-center gap-3 text-sm text-neutral-500 xl:flex">
             <span className="hidden xl:inline">{session.user?.email}</span>
             <form action={doSignOut}>
               <button
