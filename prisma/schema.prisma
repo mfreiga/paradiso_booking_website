@@ -109,6 +109,9 @@ model Stylist {
   gender       StaffGender
   bio          String?
   photoUrl     String?
+  /// Uploaded portrait (resized client-side, ≤ 1 MB), served by /stylist-photo/[id].
+  photoData    Bytes?
+  photoMime    String?
   isActive     Boolean          @default(true)
   displayOrder Int              @default(0)
   services     StylistService[]
@@ -196,6 +199,8 @@ model Appointment {
   manageToken          String            @unique
   reviewToken          String            @unique
   source               AppointmentSource @default(CUSTOMER)
+  /// Customer's site language at booking time ("de" | "en") — used for emails.
+  locale               String            @default("de")
   items                AppointmentItem[]
   review               Review?
   createdAt            DateTime          @default(now())

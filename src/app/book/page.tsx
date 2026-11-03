@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { BookingWizard } from "@/components/booking-wizard";
 import { getLocale } from "@/lib/locale";
+import { emailTransport } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,7 @@ export default async function BookPage() {
       },
     }),
     prisma.stylist.findMany({
+      omit: { photoData: true },
       where: { isActive: true },
       orderBy: { displayOrder: "asc" },
       include: {
@@ -83,6 +85,7 @@ export default async function BookPage() {
       barbers={barbers}
       bookingWindowDays={setting?.bookingWindowDays ?? 60}
       locale={locale}
+      emailLive={emailTransport() !== "log"}
     />
   );
 }

@@ -9,6 +9,7 @@ export default async function NewAppointmentPage() {
   await requireAdmin();
 
   const stylists = await prisma.stylist.findMany({
+    omit: { photoData: true },
     where: { isActive: true },
     orderBy: { displayOrder: "asc" },
     include: {

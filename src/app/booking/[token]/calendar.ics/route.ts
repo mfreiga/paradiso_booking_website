@@ -1,9 +1,7 @@
 import { prisma } from "@/lib/prisma";
-import { dict } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale";
-import { tName } from "@/lib/service-i18n";
 import { siteUrl } from "@/lib/site-url";
-import { buildIcs } from "@/lib/ics";
+import { appointmentIcs } from "@/lib/appointment-ics";
 
 export const dynamic = "force-dynamic";
 
@@ -16,22 +14,17 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
   if (!appt || appt.status === "CANCELLED") {
     return new Response("Not found", { status: 404 });
   }
-
-  const locale = await getLocale();
-  const t = dict[locale].manage;
   const setting = await prisma.setting.findUnique({ where: { id: 1 } });
-  const manageUrl = `${siteUrl()}/booking/${token}`;
-  const services = appt.items.map((i) => tName(i.nameSnapshot, locale)).join(", ");
 
-  const ics = buildIcs({
-    uid: `${appt.id}@paradiso`,
-    start: appt.startAt,
-    end: appt.endAt,
-    title: t.calTitle,
-    location: setting?.shopAddress ?? "Augustenstraße 72, 80333 München",
-    description: `${services} · ${t.calWith} ${appt.stylist.name}\n\n${t.calManage}\n${manageUrl}`,
-    url: manageUrl,
-    alarmMinutesBefore: 120,
+  const ics = appointmentIcs({
+    id: appt.id,
+    startAt: appt.startAt,
+    endAt: appt.endAt,
+    stylistName: appt.stylist.name,
+    services: appt.items.map((i) => i.nameSnapshot),
+    manageUrl: `${siteUrl()}/booking/${token}`,
+    locale: await getLocale(),
+    address: setting?.shopAddress,
   });
 
   return new Response(ics, {

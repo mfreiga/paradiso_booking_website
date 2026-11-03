@@ -33,6 +33,7 @@ export function AdminNewBookingForm({ barbers }: { barbers: Barber[] }) {
   const [slot, setSlot] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -81,6 +82,7 @@ export function AdminNewBookingForm({ barbers }: { barbers: Barber[] }) {
         startAt: slot,
         customerName: name,
         customerPhone: phone,
+        customerEmail: email,
       });
       if (res.ok) router.push("/admin/appointments");
       else setError(res.error);
@@ -193,6 +195,16 @@ export function AdminNewBookingForm({ barbers }: { barbers: Barber[] }) {
             onChange={(e) => setPhone(e.target.value)}
             className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
           />
+        </div>
+        <div className="sm:col-span-2">
+          <label className="block text-sm font-medium text-neutral-700">E-Mail (optional)</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
+          />
+          <p className="mt-1 text-xs text-neutral-400">Wenn angegeben, bekommt die Person eine Bestätigung mit Kalendereintrag und Link zum Absagen.</p>
         </div>
       </div>
 

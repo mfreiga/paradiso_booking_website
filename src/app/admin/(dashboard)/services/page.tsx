@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-guard";
 import { toggleServiceField, updateVariant } from "./actions";
@@ -31,8 +32,12 @@ export default async function ServicesAdminPage() {
     <div>
       <h1 className="text-2xl font-semibold">Leistungen</h1>
       <p className="mt-1 text-sm text-neutral-500">
-        Preise, Dauer und Sichtbarkeit verwalten. Die <strong>Dauer</strong>{" "}
-        bestimmt, welche Terminzeiten Kund&shy;innen angeboten werden.
+        Preise, Dauer und Sichtbarkeit. Die <strong>Dauer</strong> bestimmt, wie lange ein
+        Termin online blockiert wird. Wer welche Leistung anbietet, stellst du bei den{" "}
+        <Link href="/admin/barbers" className="underline">
+          Friseuren
+        </Link>{" "}
+        ein.
       </p>
 
       {genders.map((g) => (

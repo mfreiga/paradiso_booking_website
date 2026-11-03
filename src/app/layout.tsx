@@ -23,15 +23,14 @@ export const metadata: Metadata = {
   // Makes the opengraph-image URL absolute (required for WhatsApp/social previews).
   metadataBase: new URL(siteUrl()),
   title: {
-    default: "Hairstyling Paradiso — Friseur in München (Maxvorstadt)",
+    default: "Hairstyling Paradiso | Friseur in München-Maxvorstadt",
     template: "%s · Hairstyling Paradiso",
   },
   description:
-    "Hairstyling Paradiso in der Augustenstraße 72, München-Maxvorstadt: Damen- und Herrenfriseur mit Studentenrabatt. Termin einfach online buchen.",
+    "Friseur für Damen und Herren in der Augustenstraße 72 in München, mit Studentenrabatt. Termine kannst du online buchen.",
   openGraph: {
-    title: "Hairstyling Paradiso — Friseur in München (Maxvorstadt)",
-    description:
-      "Damen- und Herrenfriseur in der Augustenstraße 72 — Termin einfach online buchen.",
+    title: "Hairstyling Paradiso | Friseur in München-Maxvorstadt",
+    description: "Friseur für Damen und Herren in der Augustenstraße 72. Termine online buchen.",
     locale: "de_DE",
     type: "website",
   },

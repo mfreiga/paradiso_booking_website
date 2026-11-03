@@ -7,6 +7,8 @@ import { getAvailableSlots } from "@/lib/availability";
 import { sendBookingConfirmation } from "@/lib/email";
 import { siteUrl } from "@/lib/site-url";
 import { BOOKING_LIMITS } from "@/lib/booking-limits";
+import { appointmentIcs } from "@/lib/appointment-ics";
+import type { Locale } from "@/lib/i18n";
 
 const SHOP_TZ = process.env.SHOP_TIMEZONE ?? "Europe/Berlin";
 
@@ -37,6 +39,8 @@ export interface CreateBookingInput {
   note?: string;
   /** Honeypot: hidden from people, filled in by naive bots. Must stay empty. */
   website?: string;
+  /** Site language, so emails go out in the customer's language. */
+  locale?: string;
 }
 
 /** Error codes are translated in the booking wizard (see i18n `book.errors`). */
@@ -75,13 +79,14 @@ export async function createBooking(
   if (!input.stylistId || variantIds.length === 0 || !input.startAt) {
     return { ok: false, error: "incomplete" };
   }
+  // Phone is optional; if given it has to look like a number.
   if (
     !name ||
     name.length > BOOKING_LIMITS.name ||
     email.length > BOOKING_LIMITS.email ||
     !emailRe.test(email) ||
     phone.length > BOOKING_LIMITS.phone ||
-    phone.replace(/\D/g, "").length < 6
+    (phone && phone.replace(/\D/g, "").length < 6)
   ) {
     return { ok: false, error: "invalidContact" };
   }
@@ -111,7 +116,7 @@ export async function createBooking(
     where: {
       status: { in: ["PENDING", "CONFIRMED"] },
       startAt: { gt: new Date() },
-      OR: [{ customerEmail: email }, { customerPhone: phone }],
+      OR: [{ customerEmail: email }, ...(phone ? [{ customerPhone: phone }] : [])],
     },
   });
   if (activeForContact >= MAX_ACTIVE_PER_CONTACT) {
@@ -143,16 +148,18 @@ export async function createBooking(
 
   const manageToken = randomBytes(24).toString("hex");
   const reviewToken = randomBytes(24).toString("hex");
+  const locale: Locale = input.locale === "en" ? "en" : "de";
 
   try {
     const customer = await prisma.customer.upsert({
       where: { email },
-      update: { name, phone },
-      create: { email, name, phone },
+      update: { name, ...(phone ? { phone } : {}) },
+      create: { email, name, phone: phone || null },
     });
 
-    await prisma.appointment.create({
+    const appt = await prisma.appointment.create({
       data: {
+        locale,
         stylistId: input.stylistId,
         customerId: customer.id,
         customerName: name,
@@ -182,19 +189,40 @@ export async function createBooking(
     });
 
     try {
-      const stylist = await prisma.stylist.findUnique({
-        where: { id: input.stylistId },
-        select: { name: true },
-      });
+      const [stylistRow, setting] = await Promise.all([
+        prisma.stylist.findUnique({ where: { id: input.stylistId }, select: { name: true } }),
+        prisma.setting.findUnique({ where: { id: 1 } }),
+      ]);
+      const barberName = stylistRow?.name ?? "";
+      const manageUrl = `${siteUrl()}/booking/${manageToken}`;
+      const services = variants.map((v) => v.service.name);
       await sendBookingConfirmation({
         to: email,
+        locale,
         customerName: name,
-        barberName: stylist?.name ?? "",
+        customerPhone: phone,
+        note,
+        barberName,
         startAt: start,
-        services: variants.map((v) => v.service.name),
+        durationMinutes: totalDurationMinutes,
+        services,
         totalPriceCents,
         priceIsFrom,
-        manageUrl: `${siteUrl()}/booking/${manageToken}`,
+        manageUrl,
+        calendarUrl: `${manageUrl}/calendar.ics`,
+        ics: appointmentIcs({
+          id: appt.id,
+          startAt: start,
+          endAt: end,
+          stylistName: barberName,
+          services,
+          manageUrl,
+          locale,
+          address: setting?.shopAddress,
+        }),
+        shopPhone: setting?.shopPhone ?? "089 57933371",
+        cancelCutoffHours: Math.round((setting?.cancellationCutoffMin ?? 120) / 60),
+        adminUrl: `${siteUrl()}/admin/appointments`,
       });
     } catch (e) {
       console.error("confirmation email failed:", e);

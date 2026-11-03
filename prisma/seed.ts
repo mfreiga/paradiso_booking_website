@@ -196,11 +196,11 @@ const catalog: CategorySeed[] = [
 
 // ── barbers (photos/bios refined later via admin) ──
 const barbers = [
-  { name: "Steven", gender: "MALE", bio: "Präzise Schnitte und moderne Fades – Steven bringt jeden Look auf den Punkt." },
-  { name: "Bassam", gender: "MALE", bio: "Klassisches Barber-Handwerk mit Liebe zum Detail, von Nassrasur bis Bartpflege." },
-  { name: "Yousef", gender: "MALE", bio: "Spezialist für Übergänge und Konturen – immer am Puls der aktuellen Trends." },
-  { name: "Melina", gender: "FEMALE", bio: "Von Schnitt bis Balayage – Melina findet den Stil, der zu dir passt." },
-  { name: "Kuvia", gender: "FEMALE", bio: "Farbe, Strähnen und Styling mit Fingerspitzengefühl für besondere Anlässe." },
+  { name: "Steven", gender: "MALE", bio: "Haarschnitte und Fades." },
+  { name: "Bassam", gender: "MALE", bio: "Haarschnitte, Nassrasur und Bart." },
+  { name: "Yousef", gender: "MALE", bio: "Fades, Übergänge und Konturen." },
+  { name: "Melina", gender: "FEMALE", bio: "Schnitte, Farbe und Balayage." },
+  { name: "Kuvia", gender: "FEMALE", bio: "Farbe, Strähnen und Hochsteckfrisuren." },
 ] as const;
 
 // real shop hours (Google Business): Mon–Fri 09:00–20:00, Sat 09:00–19:00, Sun closed

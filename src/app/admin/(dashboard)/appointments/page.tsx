@@ -26,6 +26,7 @@ export default async function AppointmentsAdminPage() {
   startOfToday.setHours(0, 0, 0, 0);
 
   const barbers = await prisma.stylist.findMany({
+    omit: { photoData: true },
     orderBy: { displayOrder: "asc" },
     include: {
       appointments: {
@@ -92,7 +93,7 @@ export default async function AppointmentsAdminPage() {
                         </span>
                       </div>
                       <div className="text-sm text-neutral-600">
-                        {a.customerName} · {a.customerPhone}
+                        {[a.customerName, a.customerEmail, a.customerPhone].filter(Boolean).join(" · ")}
                       </div>
                       <div className="text-sm text-neutral-500">
                         {a.items

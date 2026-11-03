@@ -77,16 +77,11 @@ const en: Record<string, string> = {
   "Ab 20 Tape (Paar)": "20+ tapes (pair)",
 
   // ── barber bios (keyed by the seeded German text; an admin edit falls back to German) ──
-  "Präzise Schnitte und moderne Fades – Steven bringt jeden Look auf den Punkt.":
-    "Precise cuts and modern fades – Steven nails every look.",
-  "Klassisches Barber-Handwerk mit Liebe zum Detail, von Nassrasur bis Bartpflege.":
-    "Classic barbering with an eye for detail, from hot-towel shaves to beard care.",
-  "Spezialist für Übergänge und Konturen – immer am Puls der aktuellen Trends.":
-    "Fade and line-up specialist – always on top of the latest trends.",
-  "Von Schnitt bis Balayage – Melina findet den Stil, der zu dir passt.":
-    "From cuts to balayage – Melina finds the style that suits you.",
-  "Farbe, Strähnen und Styling mit Fingerspitzengefühl für besondere Anlässe.":
-    "Colour, highlights and styling with a delicate touch for special occasions.",
+  "Haarschnitte und Fades.": "Haircuts and fades.",
+  "Haarschnitte, Nassrasur und Bart.": "Haircuts, wet shaves and beards.",
+  "Fades, Übergänge und Konturen.": "Fades and line-ups.",
+  "Schnitte, Farbe und Balayage.": "Cuts, colour and balayage.",
+  "Farbe, Strähnen und Hochsteckfrisuren.": "Colour, highlights and updos.",
 };
 
 /** Translate a DB-stored category/service name for display. */

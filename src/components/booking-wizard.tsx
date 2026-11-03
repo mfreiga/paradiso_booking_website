@@ -41,6 +41,8 @@ type Props = {
   barbers: Barber[];
   bookingWindowDays: number;
   locale: Locale;
+  /** True when a mail transport is configured (changes the note on the done screen). */
+  emailLive?: boolean;
 };
 
 type Length = "Kurz" | "Mittel" | "Lang";
@@ -83,7 +85,7 @@ function ymd(d: Date) {
 
 function Stars({ value }: { value: number }) {
   return (
-    <span className="text-amber-400" aria-label={`${value} von 5`}>
+    <span className="text-amber-400" aria-label={`${value}/5`}>
       {"★".repeat(Math.round(value))}
       <span className="text-neutral-600">{"★".repeat(5 - Math.round(value))}</span>
     </span>
@@ -91,7 +93,7 @@ function Stars({ value }: { value: number }) {
 }
 
 // ── component ────────────────────────────────────────────────
-export function BookingWizard({ categories, barbers, bookingWindowDays, locale }: Props) {
+export function BookingWizard({ categories, barbers, bookingWindowDays, locale, emailLive = false }: Props) {
   const t = dict[locale].book;
   const loc = dateLocale[locale];
   const WD_SHORT = dict[locale].weekdaysShort;
@@ -110,6 +112,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays, locale }
   const [length, setLength] = useState<Length | null>(null);
   const [barberId, setBarberId] = useState<string | null>(null);
   const [date, setDate] = useState<string | null>(null);
+  const [viewMonth, setViewMonth] = useState<string | null>(null); // "YYYY-MM" shown in the day picker
   const [slots, setSlots] = useState<string[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [slot, setSlot] = useState<string | null>(null);
@@ -142,12 +145,23 @@ export function BookingWizard({ categories, barbers, bookingWindowDays, locale }
     });
   }
 
-  function loadSlots(b: string, d: string) {
+  /** `nextDays`: when the first day is already full (e.g. today in the evening), try the following ones. */
+  function loadSlots(b: string, d: string, nextDays: string[] = []) {
     setLoadingSlots(true);
     setSlots([]);
     setSlot(null);
     startTransition(async () => {
-      const res = await getSlots(b, d, variantIds);
+      let day = d;
+      let res = await getSlots(b, day, variantIds);
+      for (const next of nextDays.slice(0, 6)) {
+        if (res.length > 0) break;
+        day = next;
+        res = await getSlots(b, day, variantIds);
+      }
+      if (res.length > 0 && day !== d) {
+        setDate(day);
+        setViewMonth(null);
+      }
       setSlots(res);
       setLoadingSlots(false);
     });
@@ -166,6 +180,73 @@ export function BookingWizard({ categories, barbers, bookingWindowDays, locale }
     return out;
   }
 
+  /** Month calendar for picking a day (‹ › switch months; days the barber doesn't work are disabled). */
+  function monthGrid(b: Barber) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const last = new Date(today);
+    last.setDate(today.getDate() + bookingWindowDays);
+    const [y, m] = (viewMonth ?? (date ?? ymd(today)).slice(0, 7)).split("-").map(Number);
+    const first = new Date(y, m - 1, 1);
+    const cells: (Date | null)[] = [
+      ...Array<null>(isoWeekday(first) - 1).fill(null),
+      ...Array.from({ length: new Date(y, m, 0).getDate() }, (_, i) => new Date(y, m - 1, i + 1)),
+    ];
+    const canPrev = first > today;
+    const canNext = new Date(y, m, 1) <= last;
+    const shift = (delta: number) => setViewMonth(ymd(new Date(y, m - 1 + delta, 1)).slice(0, 7));
+    const arrow = "flex h-9 w-9 items-center justify-center rounded-full text-lg hover:bg-white/10 disabled:opacity-25 disabled:hover:bg-transparent";
+
+    return (
+      <div className="mb-5 rounded-2xl border border-white/10 bg-white/5 p-3">
+        <div className="mb-2 flex items-center justify-between">
+          <button type="button" onClick={() => shift(-1)} disabled={!canPrev} aria-label={t.prevMonth} className={arrow}>
+            ‹
+          </button>
+          <span className="text-sm font-medium">{first.toLocaleDateString(loc, { month: "long", year: "numeric" })}</span>
+          <button type="button" onClick={() => shift(1)} disabled={!canNext} aria-label={t.nextMonth} className={arrow}>
+            ›
+          </button>
+        </div>
+        <div className="grid grid-cols-7 gap-1 text-center text-xs text-neutral-500">
+          {[1, 2, 3, 4, 5, 6, 7].map((wd) => (
+            <div key={wd} className="py-1">
+              {WD_SHORT[wd]}
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-1">
+          {cells.map((d, i) => {
+            if (!d) return <div key={`pad-${i}`} />;
+            const ds = ymd(d);
+            const open = d >= today && d <= last && b.workingWeekdays.includes(isoWeekday(d));
+            const selectedDay = ds === date;
+            return (
+              <button
+                key={ds}
+                type="button"
+                disabled={!open}
+                onClick={() => {
+                  setDate(ds);
+                  loadSlots(b.id, ds);
+                }}
+                className={`aspect-square rounded-lg text-sm transition ${
+                  selectedDay
+                    ? "bg-orange-500 font-semibold text-white"
+                    : open
+                      ? "border border-white/15 hover:border-orange-500 hover:bg-orange-500/10"
+                      : "text-neutral-700"
+                }`}
+              >
+                {d.getDate()}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
   function submit() {
     if (!barberId || !slot) return;
     setError(null);
@@ -179,6 +260,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays, locale }
         phone: form.phone,
         note: form.note,
         website: form.website,
+        locale,
       });
       if (res.ok) {
         setManageToken(res.manageToken);
@@ -354,8 +436,9 @@ export function BookingWizard({ categories, barbers, bookingWindowDays, locale }
                     const days = upcomingDays(b);
                     const d = days[0]?.date ?? null;
                     setDate(d);
+                    setViewMonth(null);
                     setStep("time");
-                    if (d) loadSlots(b.id, d);
+                    if (d) loadSlots(b.id, d, days.slice(1).map((x) => x.date));
                   }}
                   className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 text-left transition hover:border-orange-400"
                 >
@@ -396,20 +479,12 @@ export function BookingWizard({ categories, barbers, bookingWindowDays, locale }
         <div>
           {header(t.whenTitle, () => setStep("barber"))}
           {error && <div className="mb-3 rounded-lg bg-red-500/10 p-3 text-sm text-red-400">{error}</div>}
-          <div className="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4 pb-1">
-            {upcomingDays(barber).map((d) => (
-              <button
-                key={d.date}
-                onClick={() => {
-                  setDate(d.date);
-                  loadSlots(barber.id, d.date);
-                }}
-                className={`shrink-0 rounded-xl border px-3 py-2 text-sm ${date === d.date ? "border-orange-500 bg-orange-500/15 text-orange-300" : "border-white/15"}`}
-              >
-                {d.label}
-              </button>
-            ))}
-          </div>
+          {monthGrid(barber)}
+          {date && (
+            <p className="mb-3 text-sm font-medium">
+              {new Date(`${date}T12:00:00`).toLocaleDateString(loc, { weekday: "long", day: "numeric", month: "long" })}
+            </p>
+          )}
           {loadingSlots || pending ? (
             <p className="text-sm text-neutral-400">{t.loadingSlots}</p>
           ) : slots.length === 0 ? (
@@ -455,28 +530,28 @@ export function BookingWizard({ categories, barbers, bookingWindowDays, locale }
               ["email", t.email, "email", "email"],
               ["phone", t.phone, "tel", "tel"],
             ] as const).map(([k, label, type, autoComplete]) => (
-              <div key={k}>
-                <label className="block text-sm font-medium text-neutral-300">{label}</label>
+              <label key={k} className="block text-sm font-medium text-neutral-300">
+                {label}
                 <input
                   type={type}
                   autoComplete={autoComplete}
                   maxLength={BOOKING_LIMITS[k]}
                   value={form[k]}
                   onChange={(e) => setForm({ ...form, [k]: e.target.value })}
-                  className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm outline-none focus:border-orange-500"
+                  className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm font-normal text-white outline-none focus:border-orange-500"
                 />
-              </div>
+              </label>
             ))}
-            <div>
-              <label className="block text-sm font-medium text-neutral-300">{t.note}</label>
+            <label className="block text-sm font-medium text-neutral-300">
+              {t.note}
               <textarea
                 value={form.note}
                 maxLength={BOOKING_LIMITS.note}
                 onChange={(e) => setForm({ ...form, note: e.target.value })}
                 rows={2}
-                className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm outline-none focus:border-orange-500"
+                className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm font-normal text-white outline-none focus:border-orange-500"
               />
-            </div>
+            </label>
             {/* Honeypot: off-screen and skipped by keyboard/screen readers; bots that fill every field get rejected. */}
             <div aria-hidden="true" className="absolute -left-[9999px] h-px w-px overflow-hidden">
               <label>
@@ -493,7 +568,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays, locale }
           </div>
           <button
             onClick={submit}
-            disabled={pending || !form.name || !form.email || !form.phone}
+            disabled={pending || !form.name || !form.email}
             className="mt-5 w-full rounded-full bg-orange-500 px-6 py-3 text-sm font-medium text-white disabled:opacity-40"
           >
             {pending ? t.submitting : t.submit}
@@ -532,7 +607,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays, locale }
               {t.manage}
             </a>
           </div>
-          <p className="mt-4 text-xs text-neutral-400">{t.emailNote}</p>
+          <p className="mt-4 text-xs text-neutral-400">{emailLive ? t.emailNoteLive : t.emailNote}</p>
         </div>
       )}
       </div>

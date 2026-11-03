@@ -6,7 +6,7 @@ const nav = [
   { href: "/admin", label: "Übersicht" },
   { href: "/admin/appointments", label: "Termine" },
   { href: "/admin/calendar", label: "Kalender" },
-  { href: "/admin/time-off", label: "Abwesenheiten" },
+  { href: "/admin/time-off", label: "Zeit blockieren" },
   { href: "/admin/services", label: "Leistungen" },
   { href: "/admin/barbers", label: "Friseure" },
   { href: "/admin/reviews", label: "Bewertungen" },
@@ -27,22 +27,42 @@ export default async function AdminLayout({
   return (
     <div className="min-h-screen bg-neutral-50 text-neutral-900">
       <header className="border-b border-neutral-200 bg-white">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-3">
-          <span className="font-semibold">Paradiso Admin</span>
-          {/* Full-width swipeable row on phones, inline on larger screens. */}
-          <nav className="order-last -mx-4 flex w-[calc(100%+2rem)] gap-4 overflow-x-auto whitespace-nowrap px-4 pb-1 text-sm lg:order-none lg:mx-0 lg:w-auto lg:flex-1 lg:px-0 lg:pb-0">
+        <div className="relative mx-auto flex max-w-6xl items-center justify-between gap-6 px-4 py-3">
+          <Link href="/admin" className="font-semibold">
+            Paradiso Admin
+          </Link>
+          <nav className="hidden flex-1 gap-4 text-sm lg:flex">
             {nav.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="text-neutral-600 hover:text-neutral-900"
-              >
+              <Link key={item.href} href={item.href} className="whitespace-nowrap text-neutral-600 hover:text-neutral-900">
                 {item.label}
               </Link>
             ))}
           </nav>
-          <div className="flex items-center gap-3 text-sm text-neutral-500">
-            <span className="hidden sm:inline">{session.user?.email}</span>
+          {/* Phones/tablets: a menu button that opens a vertical list. */}
+          <details className="group lg:hidden">
+            <summary className="cursor-pointer list-none rounded-lg border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700 [&::-webkit-details-marker]:hidden">
+              <span className="group-open:hidden">☰ Menü</span>
+              <span className="hidden group-open:inline">✕ Schließen</span>
+            </summary>
+            <nav className="absolute inset-x-0 top-full z-20 border-b border-neutral-200 bg-white px-4 py-2 shadow-lg">
+              {nav.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="block border-b border-neutral-100 py-3 text-base text-neutral-700 last:border-0"
+                >
+                  {item.label}
+                </Link>
+              ))}
+              <form action={doSignOut} className="py-3">
+                <button type="submit" className="text-base text-red-700">
+                  Abmelden
+                </button>
+              </form>
+            </nav>
+          </details>
+          <div className="hidden items-center gap-3 text-sm text-neutral-500 lg:flex">
+            <span className="hidden xl:inline">{session.user?.email}</span>
             <form action={doSignOut}>
               <button
                 type="submit"

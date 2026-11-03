@@ -6,6 +6,9 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-guard";
 import { getAvailableSlots } from "@/lib/availability";
+import { sendBookingConfirmation } from "@/lib/email";
+import { appointmentIcs } from "@/lib/appointment-ics";
+import { siteUrl } from "@/lib/site-url";
 
 const SHOP_TZ = process.env.SHOP_TIMEZONE ?? "Europe/Berlin";
 
@@ -40,14 +43,19 @@ export async function createAdminBooking(input: {
   startAt: string;
   customerName: string;
   customerPhone: string;
+  customerEmail?: string;
 }): Promise<AdminBookingResult> {
   await requireAdmin();
-  const name = (input.customerName ?? "").trim();
-  const phone = (input.customerPhone ?? "").trim();
+  const name = (input.customerName ?? "").trim().slice(0, 100);
+  const phone = (input.customerPhone ?? "").trim().slice(0, 40);
+  const email = (input.customerEmail ?? "").trim().toLowerCase();
   const variantIds = input.variantIds ?? [];
 
   if (!input.stylistId || variantIds.length === 0 || !input.startAt || !name) {
     return { ok: false, error: "Bitte Friseur:in, Leistung, Zeit und Name angeben." };
+  }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { ok: false, error: "Die E-Mail-Adresse sieht nicht richtig aus." };
   }
 
   const variants = await prisma.serviceVariant.findMany({
@@ -79,12 +87,13 @@ export async function createAdminBooking(input: {
     return { ok: false, error: "Diese Zeit ist nicht verfügbar." };
   }
 
+  const manageToken = randomBytes(24).toString("hex");
   try {
-    await prisma.appointment.create({
+    const appt = await prisma.appointment.create({
       data: {
         stylistId: input.stylistId,
         customerName: name,
-        customerEmail: "",
+        customerEmail: email,
         customerPhone: phone,
         startAt: start,
         endAt: end,
@@ -92,7 +101,7 @@ export async function createAdminBooking(input: {
         totalPriceCents,
         totalDurationMinutes,
         priceIsFrom,
-        manageToken: randomBytes(24).toString("hex"),
+        manageToken,
         reviewToken: randomBytes(24).toString("hex"),
         source: "ADMIN",
         items: {
@@ -107,6 +116,37 @@ export async function createAdminBooking(input: {
         },
       },
     });
+    if (email) {
+      try {
+        const [stylist, setting] = await Promise.all([
+          prisma.stylist.findUnique({ where: { id: input.stylistId }, select: { name: true } }),
+          prisma.setting.findUnique({ where: { id: 1 } }),
+        ]);
+        const manageUrl = `${siteUrl()}/booking/${manageToken}`;
+        const services = variants.map((v) => v.service.name);
+        await sendBookingConfirmation({
+          to: email,
+          locale: "de",
+          customerName: name,
+          customerPhone: phone,
+          barberName: stylist?.name ?? "",
+          startAt: start,
+          durationMinutes: totalDurationMinutes,
+          services,
+          totalPriceCents,
+          priceIsFrom,
+          manageUrl,
+          calendarUrl: `${manageUrl}/calendar.ics`,
+          ics: appointmentIcs({ id: appt.id, startAt: start, endAt: end, stylistName: stylist?.name ?? "", services, manageUrl, locale: "de", address: setting?.shopAddress }),
+          shopPhone: setting?.shopPhone ?? "089 57933371",
+          cancelCutoffHours: Math.round((setting?.cancellationCutoffMin ?? 120) / 60),
+          adminUrl: `${siteUrl()}/admin/appointments`,
+          notifyShop: false,
+        });
+      } catch (e) {
+        console.error("admin booking confirmation failed:", e);
+      }
+    }
     revalidatePath("/admin/appointments");
     revalidatePath("/admin");
     return { ok: true };

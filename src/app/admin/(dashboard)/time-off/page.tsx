@@ -83,7 +83,7 @@ export default async function TimeOffPage({
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold">Abwesenheiten</h1>
+      <h1 className="text-2xl font-semibold">Zeit blockieren</h1>
       <p className="mt-1 text-sm text-neutral-500">
         Urlaub, Krankheit, Pausen oder geschlossene Tage. Gesperrte Zeiten werden
         online nicht mehr angeboten. Telefonische Buchungen trägst du am besten
