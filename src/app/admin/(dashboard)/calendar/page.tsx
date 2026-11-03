@@ -27,13 +27,32 @@ export default async function CalendarPage({
   const weekStart = base.startOf("week");
   const weekEnd = weekStart.plus({ days: 7 });
 
-  const appts = await prisma.appointment.findMany({
-    where: {
-      startAt: { gte: weekStart.toUTC().toJSDate(), lt: weekEnd.toUTC().toJSDate() },
-    },
-    orderBy: { startAt: "asc" },
-    include: { stylist: { select: { name: true } }, items: true },
-  });
+  const [appts, offs, activeStylists] = await Promise.all([
+    prisma.appointment.findMany({
+      where: {
+        startAt: { gte: weekStart.toUTC().toJSDate(), lt: weekEnd.toUTC().toJSDate() },
+      },
+      orderBy: { startAt: "asc" },
+      include: { stylist: { select: { name: true } }, items: true },
+    }),
+    prisma.timeOff.findMany({
+      where: {
+        startAt: { lt: weekEnd.toUTC().toJSDate() },
+        endAt: { gt: weekStart.toUTC().toJSDate() },
+      },
+      orderBy: { startAt: "asc" },
+      include: { stylist: { select: { name: true } } },
+    }),
+    prisma.stylist.count({ where: { isActive: true } }),
+  ]);
+
+  /** The part of a time-off block that falls on `day`, as a label, or null. */
+  const offLabel = (o: (typeof offs)[number], day: DateTime) => {
+    const s = DateTime.max(DateTime.fromJSDate(o.startAt).setZone(TZ), day.startOf("day"));
+    const e = DateTime.min(DateTime.fromJSDate(o.endAt).setZone(TZ), day.plus({ days: 1 }).startOf("day"));
+    if (e <= s) return null;
+    return e.diff(s, "hours").hours >= 24 ? "ganztägig" : `${s.toFormat("HH:mm")}–${e.hasSame(s, "day") ? e.toFormat("HH:mm") : "24:00"}`;
+  };
 
   const days = Array.from({ length: 7 }, (_, i) => weekStart.plus({ days: i }));
   const today = DateTime.now().setZone(TZ);
@@ -76,6 +95,20 @@ export default async function CalendarPage({
           const list = appts.filter((a) =>
             DateTime.fromJSDate(a.startAt).setZone(TZ).hasSame(day, "day"),
           );
+          // Same block for several barbers (e.g. salon closed) → one line.
+          const grouped = new Map<string, { key: string; names: string[]; label: string; reason: string | null }>();
+          for (const o of offs) {
+            const label = offLabel(o, day);
+            if (!label) continue;
+            const key = `${o.startAt.toISOString()}|${o.endAt.toISOString()}|${o.reason ?? ""}`;
+            const g = grouped.get(key) ?? { key, names: [], label, reason: o.reason };
+            g.names.push(o.stylist.name);
+            grouped.set(key, g);
+          }
+          const dayOffs = [...grouped.values()].map((g) => ({
+            ...g,
+            who: g.names.length === activeStylists && activeStylists > 1 ? "Salon geschlossen" : g.names.join(", "),
+          }));
           const isToday = day.hasSame(today, "day");
           return (
             <div key={day.toISODate()} className="min-w-[170px] flex-1">
@@ -85,7 +118,17 @@ export default async function CalendarPage({
                 {DAY_LABELS[day.weekday - 1]} {day.toFormat("dd.MM.")}
               </div>
               <div className="space-y-2">
-                {list.length === 0 && (
+                {dayOffs.map((g) => (
+                  <Link
+                    key={g.key}
+                    href="/admin/time-off"
+                    className="block rounded-lg border border-dashed border-neutral-300 bg-neutral-100 p-2 text-xs text-neutral-500 hover:bg-neutral-200"
+                  >
+                    <div className="font-medium">🚫 {g.who} · {g.label}</div>
+                    {g.reason && <div>{g.reason}</div>}
+                  </Link>
+                ))}
+                {list.length === 0 && dayOffs.length === 0 && (
                   <p className="px-1 text-center text-xs text-neutral-300">–</p>
                 )}
                 {list.map((a) => (

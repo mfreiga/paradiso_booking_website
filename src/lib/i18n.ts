@@ -108,6 +108,9 @@ const de = {
     closed: "Geschlossen",
     route: "Route planen →",
     mapTitle: "Karte: Hairstyling Paradiso, Augustenstraße 72, München",
+    mapLoad: "Karte anzeigen",
+    mapConsent:
+      "Beim Anzeigen wird Google Maps geladen; dabei werden Daten (u. a. deine IP-Adresse) an Google übertragen.",
     ctaTitle: "Bereit für deinen nächsten Termin?",
     ctaText: "Online buchen dauert keine 60 Sekunden.",
     impressum: "Impressum",
@@ -153,16 +156,20 @@ const de = {
     payNote: "Zahlung vor Ort",
     manage: "Termin ansehen oder stornieren",
     emailNote:
-      "Eine Bestätigung per E-Mail folgt, sobald der E-Mail-Versand aktiv ist.",
+      "Tipp: Speichere den Termin in deinem Kalender – dort ist auch der Link zum Ansehen und Stornieren.",
     at: "um",
     clock: "Uhr",
     errors: {
       incomplete: "Unvollständige Buchung.",
       invalidContact: "Bitte Name, gültige E-Mail und Telefon angeben.",
       serviceNotFound: "Leistung nicht gefunden.",
+      comboUnavailable:
+        "Diese:r Friseur:in bietet die gewählten Leistungen nicht an. Bitte Auswahl anpassen.",
       invalidTime: "Ungültige Zeit.",
       slotUnavailable: "Diese Zeit ist nicht mehr verfügbar. Bitte wähle eine andere.",
       slotTaken: "Dieser Termin wurde gerade vergeben. Bitte wähle eine andere Zeit.",
+      tooMany:
+        "Du hast bereits mehrere offene Termine. Für weitere Buchungen ruf uns bitte kurz an.",
       failed: "Buchung fehlgeschlagen. Bitte erneut versuchen.",
     },
   },
@@ -177,6 +184,10 @@ const de = {
     cancel: "Termin stornieren",
     payNote: "Zahlung vor Ort",
     from: "ab",
+    addToCalendar: "Zum Kalender hinzufügen",
+    calTitle: "Friseurtermin · Hairstyling Paradiso",
+    calWith: "bei",
+    calManage: "Termin ansehen oder stornieren:",
   },
   review: {
     title: "Termin bewerten",
@@ -187,6 +198,7 @@ const de = {
     how: "Wie war dein Termin bei",
     stars: "Sterne",
     pickStars: "Bitte wähle 1–5 Sterne.",
+    tooLong: "Dein Kommentar ist zu lang.",
     placeholder: "Optional: Erzähl uns mehr…",
     send: "Bewertung abschicken",
     sending: "Senden…",
@@ -301,6 +313,9 @@ const en: Dict = {
     closed: "Closed",
     route: "Get directions →",
     mapTitle: "Map: Hairstyling Paradiso, Augustenstraße 72, Munich",
+    mapLoad: "Show map",
+    mapConsent:
+      "Showing the map loads Google Maps, which sends data (including your IP address) to Google.",
     ctaTitle: "Ready for your next appointment?",
     ctaText: "Booking online takes less than 60 seconds.",
     impressum: "Legal notice",
@@ -345,16 +360,21 @@ const en: Dict = {
     doneText: "We look forward to seeing you,",
     payNote: "payment at the salon",
     manage: "View or cancel appointment",
-    emailNote: "An email confirmation will follow once email sending is live.",
+    emailNote:
+      "Tip: save the appointment to your calendar – it includes the link to view or cancel it.",
     at: "at",
     clock: "",
     errors: {
       incomplete: "Incomplete booking.",
       invalidContact: "Please enter your name, a valid email and phone number.",
       serviceNotFound: "Service not found.",
+      comboUnavailable:
+        "This stylist doesn't offer the selected services. Please adjust your selection.",
       invalidTime: "Invalid time.",
       slotUnavailable: "This time is no longer available. Please pick another one.",
       slotTaken: "This slot was just booked by someone else. Please pick another time.",
+      tooMany:
+        "You already have several upcoming appointments. To book more, please give us a quick call.",
       failed: "Booking failed. Please try again.",
     },
   },
@@ -369,6 +389,10 @@ const en: Dict = {
     cancel: "Cancel appointment",
     payNote: "payment at the salon",
     from: "from",
+    addToCalendar: "Add to calendar",
+    calTitle: "Hair appointment · Hairstyling Paradiso",
+    calWith: "with",
+    calManage: "View or cancel your appointment:",
   },
   review: {
     title: "Rate your appointment",
@@ -379,6 +403,7 @@ const en: Dict = {
     how: "How was your appointment with",
     stars: "stars",
     pickStars: "Please pick 1–5 stars.",
+    tooLong: "Your comment is too long.",
     placeholder: "Optional: tell us more…",
     send: "Submit review",
     sending: "Sending…",

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { submitReview } from "@/app/review/[token]/actions";
 import { dict, type Locale } from "@/lib/i18n";
+import { REVIEW_COMMENT_MAX } from "@/lib/booking-limits";
 
 export function ReviewForm({
   token,
@@ -38,7 +39,7 @@ export function ReviewForm({
     startTransition(async () => {
       const res = await submitReview(token, rating, comment);
       if (res.ok) setDone(true);
-      else setError(res.error);
+      else setError(t[res.error]);
     });
   }
 
@@ -66,6 +67,7 @@ export function ReviewForm({
         value={comment}
         onChange={(e) => setComment(e.target.value)}
         rows={3}
+        maxLength={REVIEW_COMMENT_MAX}
         placeholder={t.placeholder}
         className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-orange-500"
       />

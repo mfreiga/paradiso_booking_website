@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { getAvailableSlots } from "@/lib/availability";
 import { sendBookingConfirmation } from "@/lib/email";
 import { siteUrl } from "@/lib/site-url";
+import { BOOKING_LIMITS } from "@/lib/booking-limits";
 
 const SHOP_TZ = process.env.SHOP_TIMEZONE ?? "Europe/Berlin";
 
@@ -34,6 +35,8 @@ export interface CreateBookingInput {
   email: string;
   phone: string;
   note?: string;
+  /** Honeypot: hidden from people, filled in by naive bots. Must stay empty. */
+  website?: string;
 }
 
 /** Error codes are translated in the booking wizard (see i18n `book.errors`). */
@@ -41,9 +44,11 @@ export type BookingErrorCode =
   | "incomplete"
   | "invalidContact"
   | "serviceNotFound"
+  | "comboUnavailable"
   | "invalidTime"
   | "slotUnavailable"
   | "slotTaken"
+  | "tooMany"
   | "failed";
 
 export type CreateBookingResult =
@@ -52,29 +57,65 @@ export type CreateBookingResult =
 
 const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Bookings are confirmed instantly without verification, so cap how many
+// upcoming appointments one email/phone can hold (a family booking for kids
+// still fits) to stop a single person or script from filling the calendar.
+const MAX_ACTIVE_PER_CONTACT = 3;
+
 export async function createBooking(
   input: CreateBookingInput,
 ): Promise<CreateBookingResult> {
   const name = (input.name ?? "").trim();
-  const email = (input.email ?? "").trim();
+  const email = (input.email ?? "").trim().toLowerCase();
   const phone = (input.phone ?? "").trim();
-  const note = (input.note ?? "").trim();
+  const note = (input.note ?? "").trim().slice(0, BOOKING_LIMITS.note);
   const variantIds = Array.isArray(input.variantIds) ? input.variantIds : [];
 
+  if (input.website) return { ok: false, error: "failed" };
   if (!input.stylistId || variantIds.length === 0 || !input.startAt) {
     return { ok: false, error: "incomplete" };
   }
-  if (!name || !phone || !emailRe.test(email)) {
+  if (
+    !name ||
+    name.length > BOOKING_LIMITS.name ||
+    email.length > BOOKING_LIMITS.email ||
+    !emailRe.test(email) ||
+    phone.length > BOOKING_LIMITS.phone ||
+    phone.replace(/\D/g, "").length < 6
+  ) {
     return { ok: false, error: "invalidContact" };
   }
 
   // Recompute everything from the DB — never trust client prices/durations.
-  const variants = await prisma.serviceVariant.findMany({
-    where: { id: { in: variantIds } },
-    include: { service: { select: { id: true, name: true } } },
-  });
-  if (variants.length !== variantIds.length) {
+  const [variants, stylist] = await Promise.all([
+    prisma.serviceVariant.findMany({
+      where: { id: { in: variantIds } },
+      include: { service: { select: { id: true, name: true, isActive: true } } },
+    }),
+    prisma.stylist.findUnique({
+      where: { id: input.stylistId },
+      select: { isActive: true, services: { select: { serviceId: true } } },
+    }),
+  ]);
+  if (variants.length !== variantIds.length || variants.some((v) => !v.service.isActive)) {
     return { ok: false, error: "serviceNotFound" };
+  }
+  // The wizard only offers qualified barbers, but the action is a public
+  // endpoint: re-check that this barber is active and offers every service.
+  const offeredServiceIds = new Set(stylist?.services.map((s) => s.serviceId));
+  if (!stylist?.isActive || variants.some((v) => !offeredServiceIds.has(v.service.id))) {
+    return { ok: false, error: "comboUnavailable" };
+  }
+
+  const activeForContact = await prisma.appointment.count({
+    where: {
+      status: { in: ["PENDING", "CONFIRMED"] },
+      startAt: { gt: new Date() },
+      OR: [{ customerEmail: email }, { customerPhone: phone }],
+    },
+  });
+  if (activeForContact >= MAX_ACTIVE_PER_CONTACT) {
+    return { ok: false, error: "tooMany" };
   }
   const totalDurationMinutes = variants.reduce((s, v) => s + v.durationMinutes, 0);
   const totalPriceCents = variants.reduce((s, v) => s + v.priceCents, 0);

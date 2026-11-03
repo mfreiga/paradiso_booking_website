@@ -84,6 +84,15 @@ export default async function ManageBookingPage({
         </div>
       </div>
 
+      {active && (
+        <a
+          href={`/booking/${token}/calendar.ics`}
+          className="mt-4 inline-block rounded-full border border-neutral-300 px-6 py-2.5 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100"
+        >
+          {t.addToCalendar}
+        </a>
+      )}
+
       {appt.status === "CANCELLED" ? (
         <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
           {t.cancelled}

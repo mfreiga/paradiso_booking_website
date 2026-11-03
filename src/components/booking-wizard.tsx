@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { getSlots, createBooking } from "@/app/book/actions";
 import { dict, dateLocale, type Locale } from "@/lib/i18n";
 import { tName } from "@/lib/service-i18n";
+import { BOOKING_LIMITS } from "@/lib/booking-limits";
 import { LanguageSwitch } from "./language-switch";
 
 // ── types (match /book/page.tsx) ─────────────────────────────
@@ -112,7 +113,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays, locale }
   const [slots, setSlots] = useState<string[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [slot, setSlot] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", email: "", phone: "", note: "" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", note: "", website: "" });
   const [error, setError] = useState<string | null>(null);
   const [manageToken, setManageToken] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -177,6 +178,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays, locale }
         email: form.email,
         phone: form.phone,
         note: form.note,
+        website: form.website,
       });
       if (res.ok) {
         setManageToken(res.manageToken);
@@ -449,14 +451,16 @@ export function BookingWizard({ categories, barbers, bookingWindowDays, locale }
           {error && <div className="mb-3 rounded-lg bg-red-500/10 p-3 text-sm text-red-400">{error}</div>}
           <div className="space-y-3">
             {([
-              ["name", t.name, "text"],
-              ["email", t.email, "email"],
-              ["phone", t.phone, "tel"],
-            ] as const).map(([k, label, type]) => (
+              ["name", t.name, "text", "name"],
+              ["email", t.email, "email", "email"],
+              ["phone", t.phone, "tel", "tel"],
+            ] as const).map(([k, label, type, autoComplete]) => (
               <div key={k}>
                 <label className="block text-sm font-medium text-neutral-300">{label}</label>
                 <input
                   type={type}
+                  autoComplete={autoComplete}
+                  maxLength={BOOKING_LIMITS[k]}
                   value={form[k]}
                   onChange={(e) => setForm({ ...form, [k]: e.target.value })}
                   className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm outline-none focus:border-orange-500"
@@ -467,10 +471,24 @@ export function BookingWizard({ categories, barbers, bookingWindowDays, locale }
               <label className="block text-sm font-medium text-neutral-300">{t.note}</label>
               <textarea
                 value={form.note}
+                maxLength={BOOKING_LIMITS.note}
                 onChange={(e) => setForm({ ...form, note: e.target.value })}
                 rows={2}
                 className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm outline-none focus:border-orange-500"
               />
+            </div>
+            {/* Honeypot: off-screen and skipped by keyboard/screen readers; bots that fill every field get rejected. */}
+            <div aria-hidden="true" className="absolute -left-[9999px] h-px w-px overflow-hidden">
+              <label>
+                Website
+                <input
+                  type="text"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={form.website}
+                  onChange={(e) => setForm({ ...form, website: e.target.value })}
+                />
+              </label>
             </div>
           </div>
           <button
@@ -500,12 +518,20 @@ export function BookingWizard({ categories, barbers, bookingWindowDays, locale }
               {euro(totalPrice)} · {fmtDur(totalDuration)} · {t.payNote}
             </div>
           </div>
-          <a
-            href={`/booking/${manageToken}`}
-            className="mt-5 inline-block rounded-full border border-white/20 px-6 py-2.5 text-sm font-medium text-neutral-200 hover:bg-white/10"
-          >
-            {t.manage}
-          </a>
+          <div className="mt-5 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+            <a
+              href={`/booking/${manageToken}/calendar.ics`}
+              className="inline-block rounded-full bg-orange-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-orange-600"
+            >
+              {dict[locale].manage.addToCalendar}
+            </a>
+            <a
+              href={`/booking/${manageToken}`}
+              className="inline-block rounded-full border border-white/20 px-6 py-2.5 text-sm font-medium text-neutral-200 hover:bg-white/10"
+            >
+              {t.manage}
+            </a>
+          </div>
           <p className="mt-4 text-xs text-neutral-400">{t.emailNote}</p>
         </div>
       )}

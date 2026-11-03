@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { dict, type Dict } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale";
 import { LanguageSwitch } from "@/components/language-switch";
+import { ConsentMap } from "@/components/consent-map";
 import { siteUrl } from "@/lib/site-url";
 import { tName } from "@/lib/service-i18n";
 import interiorWide from "@/assets/photos/interior-wide.jpg";
@@ -568,12 +569,12 @@ export default async function HomePage() {
               </figcaption>
             </figure>
             <div className="overflow-hidden rounded-3xl border border-white/10 sm:col-span-3">
-              <iframe
+              <ConsentMap
                 title={t.mapTitle}
                 src="https://www.google.com/maps?q=Hairstyling+Paradiso+Augustenstra%C3%9Fe+72+80333+M%C3%BCnchen&output=embed"
+                loadLabel={t.mapLoad}
+                consentText={t.mapConsent}
                 className="h-80 w-full sm:h-full sm:min-h-96"
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
               />
             </div>
           </div>

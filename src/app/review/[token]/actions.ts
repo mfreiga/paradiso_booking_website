@@ -2,8 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { isPast } from "@/lib/time";
+import { REVIEW_COMMENT_MAX } from "@/lib/booking-limits";
 
-export type ReviewResult = { ok: true } | { ok: false; error: string };
+/** Codes are keys of i18n `review`, translated in the review form. */
+export type ReviewErrorCode = "invalid" | "pickStars" | "tooLong" | "cancelledNo" | "tooEarly" | "already";
+
+export type ReviewResult = { ok: true } | { ok: false; error: ReviewErrorCode };
 
 function displayNameFrom(full: string): string {
   const parts = full.trim().split(/\s+/).filter(Boolean);
@@ -17,20 +22,22 @@ export async function submitReview(
   rating: number,
   comment: string,
 ): Promise<ReviewResult> {
-  if (!token) return { ok: false, error: "Ungültiger Link." };
+  if (!token) return { ok: false, error: "invalid" };
   if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
-    return { ok: false, error: "Bitte 1–5 Sterne wählen." };
+    return { ok: false, error: "pickStars" };
   }
+  if (comment.length > REVIEW_COMMENT_MAX) return { ok: false, error: "tooLong" };
 
   const appt = await prisma.appointment.findUnique({
     where: { reviewToken: token },
     include: { review: true },
   });
-  if (!appt) return { ok: false, error: "Termin nicht gefunden." };
-  if (appt.status === "CANCELLED") {
-    return { ok: false, error: "Für stornierte Termine ist keine Bewertung möglich." };
+  if (!appt) return { ok: false, error: "invalid" };
+  if (appt.status === "CANCELLED") return { ok: false, error: "cancelledNo" };
+  if (appt.status !== "COMPLETED" && !isPast(appt.startAt)) {
+    return { ok: false, error: "tooEarly" };
   }
-  if (appt.review) return { ok: false, error: "Du hast diesen Termin bereits bewertet." };
+  if (appt.review) return { ok: false, error: "already" };
 
   await prisma.review.create({
     data: {

@@ -69,10 +69,12 @@ export default function DatenschutzPage() {
               5. Externe Inhalte
             </h2>
             <p className="mt-2">
-              Auf der Startseite ist eine Karte von Google Maps eingebettet.
-              Beim Laden der Karte werden Daten (u.&nbsp;a. deine IP-Adresse)
-              an Google übertragen. Anbieter: Google Ireland Limited, Gordon
-              House, Barrow Street, Dublin 4, Irland.
+              Auf der Startseite kannst du eine Karte von Google Maps
+              einblenden. Sie wird erst geladen, wenn du auf „Karte anzeigen“
+              klickst (Art. 6 Abs. 1 lit. a DSGVO). Erst dann werden Daten
+              (u.&nbsp;a. deine IP-Adresse) an Google übertragen. Anbieter:
+              Google Ireland Limited, Gordon House, Barrow Street, Dublin 4,
+              Irland.
             </p>
           </section>
 
