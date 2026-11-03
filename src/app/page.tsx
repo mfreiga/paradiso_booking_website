@@ -1,10 +1,39 @@
 import Link from "next/link";
+import Image from "next/image";
 import { prisma } from "@/lib/prisma";
-import { dict } from "@/lib/i18n";
+import { dict, type Dict } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale";
 import { LanguageSwitch } from "@/components/language-switch";
+import { siteUrl } from "@/lib/site-url";
+import { tName } from "@/lib/service-i18n";
+import interiorWide from "@/assets/photos/interior-wide.jpg";
+import storefront from "@/assets/photos/storefront.jpg";
+import reception from "@/assets/photos/reception.jpg";
+import staircase from "@/assets/photos/staircase.jpg";
+import stations from "@/assets/photos/stations.jpg";
+import washBasins from "@/assets/photos/wash-basins.jpg";
+import lounge from "@/assets/photos/lounge.jpg";
+import windowStation from "@/assets/photos/window-station.jpg";
+import stationsMirror from "@/assets/photos/stations-mirror.jpg";
+import stairsStation from "@/assets/photos/stairs-station.jpg";
 
 export const dynamic = "force-dynamic";
+
+// Salon photos supplied by the owner (Sept 2026). Originals are ~480px, so
+// tiles stay small enough to render crisp. Order + spans fill a 4×4 bento
+// grid exactly (and a 2-col grid with `grid-flow-dense` on phones).
+type AltKey = keyof Dict["home"]["galleryAlts"];
+const GALLERY: { src: typeof reception; alt: AltKey; wide?: boolean; tall?: boolean }[] = [
+  { src: reception, alt: "reception", tall: true },
+  { src: stations, alt: "stations", wide: true },
+  { src: staircase, alt: "staircase", tall: true },
+  { src: washBasins, alt: "washBasins" },
+  { src: lounge, alt: "lounge" },
+  { src: windowStation, alt: "windowStation", tall: true },
+  { src: stationsMirror, alt: "stationsMirror", wide: true },
+  { src: stairsStation, alt: "stairsStation", tall: true },
+  { src: interiorWide, alt: "interiorWide", wide: true },
+];
 
 // Real shop data (Google Business profile)
 const ADDRESS = "Augustenstraße 72, 80333 München";
@@ -106,6 +135,14 @@ export default async function HomePage() {
   const fmtTime = (m: number) =>
     `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 
+  const navLinks: [string, string][] = [
+    ["#leistungen", t.navServices],
+    ["#salon", t.navSalon],
+    ["#team", t.navTeam],
+    ["#faq", t.navFaq],
+    ["#kontakt", t.navContact],
+  ];
+
   const priceRow = (label: string, price: string, highlight = false) => (
     <li key={label} className="flex justify-between gap-4 text-neutral-300">
       <span>{label}</span>
@@ -126,39 +163,54 @@ export default async function HomePage() {
             Paradiso
           </span>
           <nav className="hidden items-center gap-7 text-sm text-neutral-300 md:flex">
-            <a href="#leistungen" className="transition hover:text-white">
-              {t.navServices}
-            </a>
-            <a href="#team" className="transition hover:text-white">
-              {t.navTeam}
-            </a>
-            <a href="#faq" className="transition hover:text-white">
-              {t.navFaq}
-            </a>
-            <a href="#kontakt" className="transition hover:text-white">
-              {t.navContact}
-            </a>
+            {navLinks.map(([href, label]) => (
+              <a key={href} href={href} className="transition hover:text-white">
+                {label}
+              </a>
+            ))}
           </nav>
           <div className="flex items-center gap-3">
             <LanguageSwitch locale={locale} />
             <Link
               href="/book"
-              className="rounded-full bg-orange-500 px-5 py-2 text-sm font-medium text-white transition hover:bg-orange-600"
+              className="rounded-full bg-orange-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-orange-600 sm:px-5"
             >
               {t.bookCta}
             </Link>
           </div>
         </div>
+        {/* Phones: same tabs as a swipeable pill row */}
+        <nav className="flex gap-2 overflow-x-auto px-6 pb-2 text-sm [scrollbar-width:none] md:hidden">
+          {navLinks.map(([href, label]) => (
+            <a
+              key={href}
+              href={href}
+              className="shrink-0 rounded-full border border-white/15 bg-neutral-950/40 px-4 py-1.5 text-neutral-200 backdrop-blur transition hover:border-orange-500 hover:text-white"
+            >
+              {label}
+            </a>
+          ))}
+        </nav>
       </header>
 
       {/* Hero */}
-      <section className="relative overflow-hidden px-6 pb-28 pt-40 text-center">
+      <section className="relative overflow-hidden px-6 pb-28 pt-48 text-center md:pt-40">
+        {/* Salon photo, heavily darkened + softened so the ~480px source never looks pixelated */}
+        <Image
+          src={interiorWide}
+          alt={t.heroImageAlt}
+          fill
+          preload
+          sizes="100vw"
+          placeholder="blur"
+          className="scale-110 object-cover opacity-40 blur-[2px]"
+        />
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0"
           style={{
             background:
-              "radial-gradient(ellipse 65% 55% at 50% 0%, rgba(249,115,22,0.28), transparent), radial-gradient(ellipse 40% 35% at 85% 100%, rgba(249,115,22,0.08), transparent)",
+              "linear-gradient(to bottom, rgba(10,10,10,0.55), rgba(10,10,10,0.75) 60%, #0a0a0a), radial-gradient(ellipse 65% 55% at 50% 0%, rgba(249,115,22,0.30), transparent)",
           }}
         />
         <div className="relative mx-auto max-w-2xl">
@@ -260,6 +312,44 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* Salon gallery */}
+      <section id="salon" className="mx-auto max-w-5xl scroll-mt-20 px-6 pb-20">
+        <p className="text-center text-sm font-medium uppercase tracking-[0.3em] text-orange-400">
+          {t.galleryKicker}
+        </p>
+        <h2 className="font-display mt-3 text-center text-4xl font-semibold">
+          {t.galleryTitle}
+        </h2>
+        <p className="mx-auto mt-4 max-w-xl text-center leading-relaxed text-neutral-400">
+          {t.galleryText}
+        </p>
+        <div className="mt-12 grid grid-flow-dense auto-rows-[160px] grid-cols-2 gap-3 md:auto-rows-[210px] md:grid-cols-4">
+          {GALLERY.map((p) => (
+            <figure
+              key={p.alt}
+              className={`group relative overflow-hidden rounded-2xl border border-white/10 bg-neutral-900 ${p.wide ? "col-span-2" : ""} ${p.tall ? "row-span-2" : ""}`}
+            >
+              <Image
+                src={p.src}
+                alt={t.galleryAlts[p.alt]}
+                fill
+                placeholder="blur"
+                sizes={
+                  p.wide
+                    ? "(max-width: 768px) 100vw, 512px"
+                    : "(max-width: 768px) 50vw, 256px"
+                }
+                className="object-cover transition duration-500 group-hover:scale-105"
+              />
+              <div
+                aria-hidden
+                className="absolute inset-0 bg-gradient-to-t from-neutral-950/50 via-transparent to-transparent opacity-80 transition group-hover:opacity-40"
+              />
+            </figure>
+          ))}
+        </div>
+      </section>
+
       {/* Team */}
       <section
         id="team"
@@ -300,7 +390,7 @@ export default async function HomePage() {
                   )}
                   {st.bio && (
                     <p className="mt-3 text-xs leading-relaxed text-neutral-400">
-                      {st.bio}
+                      {tName(st.bio, locale)}
                     </p>
                   )}
                 </div>
@@ -464,14 +554,28 @@ export default async function HomePage() {
               {t.route}
             </a>
           </div>
-          <div className="overflow-hidden rounded-3xl border border-white/10">
-            <iframe
-              title={t.mapTitle}
-              src="https://www.google.com/maps?q=Hairstyling+Paradiso+Augustenstra%C3%9Fe+72+80333+M%C3%BCnchen&output=embed"
-              className="h-96 w-full"
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-            />
+          <div className="grid gap-4 sm:grid-cols-5">
+            <figure className="relative overflow-hidden rounded-3xl border border-white/10 sm:col-span-2">
+              <Image
+                src={storefront}
+                alt={t.storefrontAlt}
+                placeholder="blur"
+                sizes="(max-width: 640px) 100vw, 220px"
+                className="h-full max-h-96 w-full object-cover"
+              />
+              <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-neutral-950/90 to-transparent px-4 pb-3 pt-10 text-xs text-neutral-200">
+                {t.storefrontCaption}
+              </figcaption>
+            </figure>
+            <div className="overflow-hidden rounded-3xl border border-white/10 sm:col-span-3">
+              <iframe
+                title={t.mapTitle}
+                src="https://www.google.com/maps?q=Hairstyling+Paradiso+Augustenstra%C3%9Fe+72+80333+M%C3%BCnchen&output=embed"
+                className="h-80 w-full sm:h-full sm:min-h-96"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+            </div>
           </div>
         </div>
       </section>
@@ -557,7 +661,8 @@ export default async function HomePage() {
               addressLocality: "München",
               addressCountry: "DE",
             },
-            url: "https://hairstylingparadiso.netlify.app",
+            url: siteUrl(),
+            image: `${siteUrl()}/opengraph-image.jpg`,
             sameAs: [INSTAGRAM_URL],
             openingHoursSpecification: [
               {

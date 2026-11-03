@@ -12,6 +12,11 @@ const longDateTime = new Intl.DateTimeFormat("de-DE", {
 });
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" });
 
+// Customers type their own name AND choose the recipient address, so every
+// interpolated value must be escaped or the form becomes an HTML-mail relay.
+const esc = (s: string) =>
+  s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+
 export interface BookingEmailData {
   to: string;
   customerName: string;
@@ -31,15 +36,15 @@ export function renderBookingConfirmationHtml(d: BookingEmailData): string {
   <div style="max-width:480px;margin:0 auto;padding:24px">
     <p style="letter-spacing:.2em;text-transform:uppercase;color:#ea580c;font-size:12px;font-weight:600;margin:0">Hairstyling</p>
     <h1 style="margin:4px 0 16px;font-size:24px">Paradiso</h1>
-    <p>Hallo ${d.customerName},</p>
+    <p>Hallo ${esc(d.customerName)},</p>
     <p>dein Termin ist bestätigt – wir freuen uns auf dich!</p>
     <div style="border:1px solid #e5e5e5;border-radius:12px;padding:16px;background:#fff;margin:16px 0">
-      <p style="margin:0 0 4px"><strong>${d.services.join(", ")}</strong></p>
-      <p style="margin:0;color:#525252">${d.barberName} · ${when}</p>
-      <p style="margin:4px 0 0">${price} · Zahlung vor Ort</p>
+      <p style="margin:0 0 4px"><strong>${esc(d.services.join(", "))}</strong></p>
+      <p style="margin:0;color:#525252">${esc(d.barberName)} · ${when}</p>
+      <p style="margin:4px 0 0">${price} · Zahlung vor Ort (bar oder Karte)</p>
     </div>
     <p>
-      <a href="${d.manageUrl}" style="display:inline-block;background:#ea580c;color:#fff;padding:11px 20px;border-radius:9999px;text-decoration:none;font-weight:600">Termin ansehen oder stornieren</a>
+      <a href="${esc(d.manageUrl)}" style="display:inline-block;background:#ea580c;color:#fff;padding:11px 20px;border-radius:9999px;text-decoration:none;font-weight:600">Termin ansehen oder stornieren</a>
     </p>
     <p style="color:#737373;font-size:12px;margin-top:24px">Falls du diesen Termin nicht gebucht hast, kannst du diese E-Mail ignorieren.</p>
   </div>
@@ -80,9 +85,9 @@ export async function sendReviewRequest(d: ReviewRequestData): Promise<void> {
   <div style="max-width:480px;margin:0 auto;padding:24px">
     <p style="letter-spacing:.2em;text-transform:uppercase;color:#ea580c;font-size:12px;font-weight:600;margin:0">Hairstyling</p>
     <h1 style="margin:4px 0 16px;font-size:24px">Paradiso</h1>
-    <p>Hallo ${d.customerName},</p>
-    <p>danke für deinen Besuch bei ${d.barberName}! Wie war's? Über eine kurze Bewertung freuen wir uns sehr.</p>
-    <p><a href="${d.reviewUrl}" style="display:inline-block;background:#ea580c;color:#fff;padding:11px 20px;border-radius:9999px;text-decoration:none;font-weight:600">Jetzt bewerten</a></p>
+    <p>Hallo ${esc(d.customerName)},</p>
+    <p>danke für deinen Besuch bei ${esc(d.barberName)}! Wie war's? Über eine kurze Bewertung freuen wir uns sehr.</p>
+    <p><a href="${esc(d.reviewUrl)}" style="display:inline-block;background:#ea580c;color:#fff;padding:11px 20px;border-radius:9999px;text-decoration:none;font-weight:600">Jetzt bewerten</a></p>
   </div>
 </body></html>`;
   const key = process.env.RESEND_API_KEY;

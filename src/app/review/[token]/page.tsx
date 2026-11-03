@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { ReviewForm } from "@/components/review-form";
 import { dict } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale";
+import { isPast } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
 
@@ -57,7 +58,7 @@ export default async function ReviewPage({
       </Shell>
     );
   }
-  const past = appt.status === "COMPLETED" || appt.startAt.getTime() < Date.now();
+  const past = appt.status === "COMPLETED" || isPast(appt.startAt);
   if (!past) {
     return (
       <Shell>

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-guard";
 import { sendReviewRequest } from "@/lib/email";
+import { siteUrl } from "@/lib/site-url";
 
 const allowed = ["PENDING", "CONFIRMED", "COMPLETED", "CANCELLED", "NO_SHOW"] as const;
 type ApptStatus = (typeof allowed)[number];
@@ -27,7 +28,7 @@ export async function setAppointmentStatus(formData: FormData) {
           to: appt.customerEmail,
           customerName: appt.customerName,
           barberName: appt.stylist.name,
-          reviewUrl: `${process.env.AUTH_URL ?? "http://localhost:3000"}/review/${appt.reviewToken}`,
+          reviewUrl: `${siteUrl()}/review/${appt.reviewToken}`,
         });
       }
     } catch (e) {

@@ -4,11 +4,11 @@
 import "dotenv/config";
 import { randomBytes } from "node:crypto";
 import { DateTime } from "luxon";
-import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
+import { createDbAdapter } from "../src/lib/db-adapter";
 
 const prisma = new PrismaClient({
-  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+  adapter: createDbAdapter(),
 });
 const TZ = "Europe/Berlin";
 const tok = () => randomBytes(24).toString("hex");

@@ -1,9 +1,9 @@
 import "dotenv/config";
-import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
+import { createDbAdapter } from "../src/lib/db-adapter";
 
 const prisma = new PrismaClient({
-  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+  adapter: createDbAdapter(),
 });
 
 // ── helpers ───────────────────────────────────────────────────
@@ -283,7 +283,17 @@ async function main() {
   // No seeded reviews — real ones arrive via the post-appointment review flow.
 
   // Settings singleton.
-  await prisma.setting.upsert({ where: { id: 1 }, update: {}, create: { id: 1 } });
+  // Contact details from the Google Business profile (the schema default
+  // phone is the old number from the 2026 price list).
+  const shopContact = {
+    shopPhone: "089 57933371",
+    shopAddress: "Augustenstraße 72, 80333 München",
+  };
+  await prisma.setting.upsert({
+    where: { id: 1 },
+    update: shopContact,
+    create: { id: 1, ...shopContact },
+  });
 
   // Summary.
   const [categories, svcCount, variants, stylists, links, reviewCount] = await Promise.all([

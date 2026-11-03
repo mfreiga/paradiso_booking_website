@@ -13,8 +13,10 @@ const timeFmt = new Intl.DateTimeFormat("de-DE", {
   timeZone: "Europe/Berlin",
 });
 
-export function formatEur(cents: number): string {
-  return eur.format(cents / 100);
+/** Price in EUR; pass a locale tag (e.g. "en-GB") for customer-facing English pages. */
+export function formatEur(cents: number, locale?: string): string {
+  if (!locale) return eur.format(cents / 100);
+  return new Intl.NumberFormat(locale, { style: "currency", currency: "EUR" }).format(cents / 100);
 }
 
 export function formatDuration(min: number): string {

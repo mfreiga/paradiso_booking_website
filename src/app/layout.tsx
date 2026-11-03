@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
 import { getLocale } from "@/lib/locale";
+import { siteUrl } from "@/lib/site-url";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -19,6 +20,8 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
+  // Makes the opengraph-image URL absolute (required for WhatsApp/social previews).
+  metadataBase: new URL(siteUrl()),
   title: {
     default: "Hairstyling Paradiso — Friseur in München (Maxvorstadt)",
     template: "%s · Hairstyling Paradiso",

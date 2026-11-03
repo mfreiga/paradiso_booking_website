@@ -5,6 +5,7 @@ import { DateTime } from "luxon";
 import { prisma } from "@/lib/prisma";
 import { getAvailableSlots } from "@/lib/availability";
 import { sendBookingConfirmation } from "@/lib/email";
+import { siteUrl } from "@/lib/site-url";
 
 const SHOP_TZ = process.env.SHOP_TIMEZONE ?? "Europe/Berlin";
 
@@ -35,9 +36,19 @@ export interface CreateBookingInput {
   note?: string;
 }
 
+/** Error codes are translated in the booking wizard (see i18n `book.errors`). */
+export type BookingErrorCode =
+  | "incomplete"
+  | "invalidContact"
+  | "serviceNotFound"
+  | "invalidTime"
+  | "slotUnavailable"
+  | "slotTaken"
+  | "failed";
+
 export type CreateBookingResult =
   | { ok: true; manageToken: string }
-  | { ok: false; error: string };
+  | { ok: false; error: BookingErrorCode };
 
 const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -51,10 +62,10 @@ export async function createBooking(
   const variantIds = Array.isArray(input.variantIds) ? input.variantIds : [];
 
   if (!input.stylistId || variantIds.length === 0 || !input.startAt) {
-    return { ok: false, error: "Unvollständige Buchung." };
+    return { ok: false, error: "incomplete" };
   }
   if (!name || !phone || !emailRe.test(email)) {
-    return { ok: false, error: "Bitte Name, gültige E-Mail und Telefon angeben." };
+    return { ok: false, error: "invalidContact" };
   }
 
   // Recompute everything from the DB — never trust client prices/durations.
@@ -63,7 +74,7 @@ export async function createBooking(
     include: { service: { select: { id: true, name: true } } },
   });
   if (variants.length !== variantIds.length) {
-    return { ok: false, error: "Leistung nicht gefunden." };
+    return { ok: false, error: "serviceNotFound" };
   }
   const totalDurationMinutes = variants.reduce((s, v) => s + v.durationMinutes, 0);
   const totalPriceCents = variants.reduce((s, v) => s + v.priceCents, 0);
@@ -73,20 +84,20 @@ export async function createBooking(
 
   const start = new Date(input.startAt);
   if (Number.isNaN(start.getTime())) {
-    return { ok: false, error: "Ungültige Zeit." };
+    return { ok: false, error: "invalidTime" };
   }
   const end = new Date(start.getTime() + totalDurationMinutes * 60_000);
 
   // Re-validate the slot is actually offered (working hours, lead time, not taken).
   const dateStr = DateTime.fromJSDate(start).setZone(SHOP_TZ).toISODate();
-  if (!dateStr) return { ok: false, error: "Ungültige Zeit." };
+  if (!dateStr) return { ok: false, error: "invalidTime" };
   const offered = await getAvailableSlots({
     stylistId: input.stylistId,
     date: dateStr,
     durationMinutes: totalDurationMinutes,
   });
   if (!offered.some((d) => d.getTime() === start.getTime())) {
-    return { ok: false, error: "Diese Zeit ist nicht mehr verfügbar." };
+    return { ok: false, error: "slotUnavailable" };
   }
 
   const manageToken = randomBytes(24).toString("hex");
@@ -142,7 +153,7 @@ export async function createBooking(
         services: variants.map((v) => v.service.name),
         totalPriceCents,
         priceIsFrom,
-        manageUrl: `${process.env.AUTH_URL ?? "http://localhost:3000"}/booking/${manageToken}`,
+        manageUrl: `${siteUrl()}/booking/${manageToken}`,
       });
     } catch (e) {
       console.error("confirmation email failed:", e);
@@ -152,12 +163,9 @@ export async function createBooking(
   } catch (e) {
     const msg = String((e as Error)?.message ?? e);
     if (msg.includes("no_overlap") || msg.includes("23P01") || msg.includes("exclusion")) {
-      return {
-        ok: false,
-        error: "Dieser Termin wurde gerade vergeben. Bitte wähle eine andere Zeit.",
-      };
+      return { ok: false, error: "slotTaken" };
     }
     console.error("createBooking failed:", e);
-    return { ok: false, error: "Buchung fehlgeschlagen. Bitte erneut versuchen." };
+    return { ok: false, error: "failed" };
   }
 }

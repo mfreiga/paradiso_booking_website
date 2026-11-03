@@ -3,13 +3,18 @@
 import { useRouter } from "next/navigation";
 import type { Locale } from "@/lib/i18n";
 
+// Remembered for a year; read server-side by getLocale().
+function persistLang(lang: Locale) {
+  document.cookie = `lang=${lang};path=/;max-age=31536000;samesite=lax`;
+}
+
 // DE | EN pill. Sets the `lang` cookie and re-renders the server components.
 export function LanguageSwitch({ locale }: { locale: Locale }) {
   const router = useRouter();
 
   function setLang(lang: Locale) {
     if (lang === locale) return;
-    document.cookie = `lang=${lang};path=/;max-age=31536000;samesite=lax`;
+    persistLang(lang);
     router.refresh();
   }
 

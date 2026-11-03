@@ -182,8 +182,8 @@ export function BookingWizard({ categories, barbers, bookingWindowDays, locale }
         setManageToken(res.manageToken);
         setStep("done");
       } else {
-        setError(res.error);
-        if (res.error.includes("verfügbar") || res.error.includes("vergeben")) {
+        setError(t.errors[res.error]);
+        if (res.error === "slotUnavailable" || res.error === "slotTaken") {
           setStep("time");
           if (barberId && date) loadSlots(barberId, date);
         }
@@ -191,8 +191,9 @@ export function BookingWizard({ categories, barbers, bookingWindowDays, locale }
     });
   }
 
-  // ── shells ─────────────────────────────────────────────────
-  const Header = ({ title, back }: { title: string; back?: () => void }) => (
+  // ── shells (render helpers, not components: defining components inside a
+  // component remounts them on every render) ──────────────────────────────
+  const header = (title: string, back?: () => void) => (
     <div className="mb-4 flex items-center gap-3">
       {back && (
         <button onClick={back} className="text-sm text-neutral-400 hover:text-white">
@@ -203,7 +204,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays, locale }
     </div>
   );
 
-  const SummaryBar = ({ cta, onClick, disabled }: { cta: string; onClick: () => void; disabled?: boolean }) => (
+  const summaryBar = (cta: string, onClick: () => void, disabled?: boolean) => (
     <div className="sticky bottom-0 mt-6 flex items-center justify-between gap-3 border-t border-white/10 bg-neutral-950/90 py-3 backdrop-blur">
       <div className="text-sm">
         <div className="font-medium">
@@ -253,7 +254,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays, locale }
               </button>
             ))}
           </div>
-          <Header title={t.whatTitle} />
+          {header(t.whatTitle)}
           {genderCats.some((c) => c.services.some((s) => s.isPopular)) && (
             <div className="mb-5">
               <div className="mb-2 text-sm font-medium text-neutral-400">{t.popular}</div>
@@ -308,10 +309,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays, locale }
             ))}
           </div>
           {selected.size > 0 && (
-            <SummaryBar
-              cta={t.next}
-              onClick={() => setStep(needsLength ? "length" : "barber")}
-            />
+            summaryBar(t.next, () => setStep(needsLength ? "length" : "barber"))
           )}
         </div>
       )}
@@ -319,7 +317,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays, locale }
       {/* STEP: length */}
       {step === "length" && (
         <div>
-          <Header title={t.lengthTitle} back={() => setStep("services")} />
+          {header(t.lengthTitle, () => setStep("services"))}
           <p className="mb-4 text-sm text-neutral-400">{t.lengthHint}</p>
           <div className="grid grid-cols-3 gap-3">
             {(["Kurz", "Mittel", "Lang"] as Length[]).map((l) => (
@@ -341,7 +339,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays, locale }
       {/* STEP: barber */}
       {step === "barber" && (
         <div>
-          <Header title={t.whoTitle} back={() => setStep(needsLength ? "length" : "services")} />
+          {header(t.whoTitle, () => setStep(needsLength ? "length" : "services"))}
           {qualifiedBarbers.length === 0 ? (
             <p className="text-sm text-neutral-400">{t.noCombo}</p>
           ) : (
@@ -376,7 +374,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays, locale }
                       <div className="mt-0.5 text-xs text-neutral-400">{t.noReviews}</div>
                     )}
                     {b.bio && (
-                      <p className="mt-1 line-clamp-2 text-xs text-neutral-400">{b.bio}</p>
+                      <p className="mt-1 line-clamp-2 text-xs text-neutral-400">{tName(b.bio, locale)}</p>
                     )}
                     {b.reviews[0]?.comment && (
                       <p className="mt-1 line-clamp-2 text-xs italic text-neutral-400">
@@ -394,7 +392,8 @@ export function BookingWizard({ categories, barbers, bookingWindowDays, locale }
       {/* STEP: time */}
       {step === "time" && barber && (
         <div>
-          <Header title={t.whenTitle} back={() => setStep("barber")} />
+          {header(t.whenTitle, () => setStep("barber"))}
+          {error && <div className="mb-3 rounded-lg bg-red-500/10 p-3 text-sm text-red-400">{error}</div>}
           <div className="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4 pb-1">
             {upcomingDays(barber).map((d) => (
               <button
@@ -420,6 +419,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays, locale }
                   key={s}
                   onClick={() => {
                     setSlot(s);
+                    setError(null);
                     setStep("details");
                   }}
                   className="rounded-lg border border-white/15 py-2 text-sm hover:border-orange-500 hover:bg-orange-500/10"
@@ -435,7 +435,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays, locale }
       {/* STEP: details */}
       {step === "details" && barber && slot && (
         <div>
-          <Header title={t.detailsTitle} back={() => setStep("time")} />
+          {header(t.detailsTitle, () => setStep("time"))}
           <div className="mb-4 rounded-xl border border-white/10 bg-white/5 p-4 text-sm">
             <div className="font-medium">{items.map((it) => tName(it.service.name, locale) + (isTiered(it.service) ? ` (${t.lengths[effLength]})` : "")).join(", ")}</div>
             <div className="text-neutral-400">

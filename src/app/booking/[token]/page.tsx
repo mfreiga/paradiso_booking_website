@@ -3,6 +3,7 @@ import { formatEur } from "@/lib/format";
 import { dict, dateLocale } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale";
 import { tName } from "@/lib/service-i18n";
+import { msUntil } from "@/lib/time";
 import { cancelBooking } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -56,7 +57,7 @@ export default async function ManageBookingPage({
   const cutoffMin = setting?.cancellationCutoffMin ?? 120;
   const phone = setting?.shopPhone ?? "";
   const active = appt.status === "PENDING" || appt.status === "CONFIRMED";
-  const tooLate = appt.startAt.getTime() - Date.now() <= cutoffMin * 60_000;
+  const tooLate = msUntil(appt.startAt) <= cutoffMin * 60_000;
 
   return (
     <Shell>
@@ -79,7 +80,7 @@ export default async function ManageBookingPage({
         </div>
         <div className="mt-1">
           {appt.priceIsFrom ? `${t.from} ` : ""}
-          {formatEur(appt.totalPriceCents)} · {t.payNote}
+          {formatEur(appt.totalPriceCents, dateLocale[locale])} · {t.payNote}
         </div>
       </div>
 
