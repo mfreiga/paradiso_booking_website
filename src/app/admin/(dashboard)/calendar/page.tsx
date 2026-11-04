@@ -170,13 +170,16 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                   ))}
                   {list.length === 0 && dayOffs.length === 0 && <p className="px-1 text-xs text-neutral-300">frei</p>}
                   {list.map((a) => (
-                    <div key={a.id} className={`rounded-lg border p-2 text-xs ${statusClass[a.status] ?? "border-neutral-200"}`}>
+                    <Link key={a.id} href={`/admin/appointments/${a.id}`} className={`block rounded-lg border p-2 text-xs transition hover:shadow ${statusClass[a.status] ?? "border-neutral-200"}`}>
                       <div className="font-medium">
                         {hm(a.startAt)}–{hm(a.endAt)} · {a.stylist.name}
                       </div>
-                      <div className="text-neutral-700">{a.customerName}</div>
+                      <div className="text-neutral-700">
+                        {a.customerName}
+                        {a.customerNote && <span title={a.customerNote}> 💬</span>}
+                      </div>
                       <div className="text-neutral-500">{a.items.map((i) => i.nameSnapshot).join(", ")}</div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </div>
@@ -231,12 +234,13 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                   ))}
                   {list.length === 0 && blocks.length === 0 && <p className="text-xs text-neutral-300">Keine Termine</p>}
                   {list.map((a) => (
-                    <div key={a.id} className={`rounded-lg border px-2 py-1.5 text-xs ${statusClass[a.status] ?? ""}`}>
+                    <Link key={a.id} href={`/admin/appointments/${a.id}`} className={`block rounded-lg border px-2 py-1.5 text-xs ${statusClass[a.status] ?? ""}`}>
                       <span className="font-medium">
                         {hm(a.startAt)}–{hm(a.endAt)}
                       </span>{" "}
                       · {a.customerName} · {a.items.map((i) => i.nameSnapshot).join(", ")}
-                    </div>
+                      {a.customerNote && " 💬"}
+                    </Link>
                   ))}
                 </div>
               </div>
@@ -297,15 +301,17 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                   {appts
                     .filter((a) => a.stylistId === s.id)
                     .map((a) => (
-                      <div
+                      <Link
                         key={a.id}
-                        className={`absolute inset-x-1 overflow-hidden rounded-md border p-1 text-[11px] leading-tight ${statusClass[a.status] ?? ""}`}
+                        href={`/admin/appointments/${a.id}`}
+                        className={`absolute inset-x-1 overflow-hidden rounded-md border p-1 text-[11px] leading-tight transition hover:z-20 hover:shadow ${statusClass[a.status] ?? ""}`}
                         style={{ top: top(mins(a.startAt)), height: Math.max(20, (mins(a.endAt) - mins(a.startAt)) * PX_PER_MIN - 2) }}
-                        title={`${hm(a.startAt)}–${hm(a.endAt)} · ${a.customerName} · ${a.items.map((i) => i.nameSnapshot).join(", ")}`}
+                        title={`${hm(a.startAt)}–${hm(a.endAt)} · ${a.customerName} · ${a.items.map((i) => i.nameSnapshot).join(", ")}${a.customerNote ? ` · „${a.customerNote}“` : ""}`}
                       >
                         <span className="font-semibold">{hm(a.startAt)}</span> {a.customerName}
+                        {a.customerNote && " 💬"}
                         <div className="truncate text-neutral-500">{a.items.map((i) => i.nameSnapshot).join(", ")}</div>
-                      </div>
+                      </Link>
                     ))}
                 </div>
               );

@@ -146,10 +146,11 @@ export default async function AdminDashboardPage() {
                 <span className="w-24 shrink-0 text-sm font-semibold tabular-nums">
                   {hm(a.startAt)}–{hm(a.endAt)}
                 </span>
-                <div className="min-w-0 flex-1 text-sm">
+                <Link href={`/admin/appointments/${a.id}`} className="min-w-0 flex-1 text-sm hover:text-orange-700">
                   <span className="font-medium">{a.customerName}</span>
                   <span className="text-neutral-500"> · {a.stylist.name} · {a.items.map((i) => i.nameSnapshot).join(", ")}</span>
-                </div>
+                  {a.customerNote && <span className="block truncate text-xs text-amber-800">💬 {a.customerNote}</span>}
+                </Link>
                 <span className={`rounded-full px-2 py-0.5 text-xs ${statusClass[a.status] ?? ""}`}>{statusLabel[a.status] ?? a.status}</span>
                 {(ACTIVE as readonly string[]).includes(a.status) && a.startAt <= new Date() && (
                   <div className="flex gap-1">
@@ -178,6 +179,7 @@ export default async function AdminDashboardPage() {
               const fresh = msUntil(a.createdAt) > -24 * 3600_000;
               return (
                 <li key={a.id} className="text-sm">
+                  <Link href={`/admin/appointments/${a.id}`} className="block hover:text-orange-700">
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{a.customerName}</span>
                     {fresh && <span className="rounded-full bg-orange-100 px-1.5 text-[10px] font-semibold uppercase text-orange-700">neu</span>}
@@ -186,6 +188,7 @@ export default async function AdminDashboardPage() {
                   <div className="text-xs text-neutral-500">
                     {z(a.startAt).setLocale("de").toFormat("ccc dd.MM., HH:mm")} · {a.stylist.name}
                   </div>
+                  </Link>
                 </li>
               );
             })}

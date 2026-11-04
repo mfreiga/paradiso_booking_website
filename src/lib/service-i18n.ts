@@ -88,3 +88,10 @@ const en: Record<string, string> = {
 export function tName(name: string, locale: Locale): string {
   return locale === "en" ? (en[name] ?? name) : name;
 }
+
+/** Barber bio for the current language: the English field, else a known translation, else German. */
+export function barberBio(b: { bio: string | null; bioEn?: string | null }, locale: Locale): string | null {
+  if (!b.bio && !b.bioEn) return null;
+  if (locale === "en") return b.bioEn || (b.bio ? tName(b.bio, locale) : null);
+  return b.bio || b.bioEn || null;
+}

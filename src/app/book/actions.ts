@@ -29,6 +29,44 @@ export async function getSlots(
   return slots.map((d) => d.toISOString());
 }
 
+/**
+ * "No preference": free start times across every barber who offers all the
+ * selected services. Each time goes to the least busy barber that day (the
+ * one with the most free slots), which spreads bookings across the team.
+ */
+export async function getAnySlots(
+  date: string,
+  variantIds: string[],
+): Promise<{ startAt: string; stylistId: string }[]> {
+  if (!date || variantIds.length === 0) return [];
+  const variants = await prisma.serviceVariant.findMany({
+    where: { id: { in: variantIds } },
+    select: { durationMinutes: true, serviceId: true },
+  });
+  const durationMinutes = variants.reduce((s, v) => s + v.durationMinutes, 0);
+  if (durationMinutes <= 0 || variants.length !== variantIds.length) return [];
+  const serviceIds = [...new Set(variants.map((v) => v.serviceId))];
+  const stylists = await prisma.stylist.findMany({
+    where: { isActive: true, AND: serviceIds.map((serviceId) => ({ services: { some: { serviceId } } })) },
+    select: { id: true },
+  });
+  const perStylist = await Promise.all(
+    stylists.map(async (s) => ({
+      stylistId: s.id,
+      slots: await getAvailableSlots({ stylistId: s.id, date, durationMinutes }),
+    })),
+  );
+  // Least busy first, so they win ties for the same start time.
+  perStylist.sort((a, b) => b.slots.length - a.slots.length);
+  const byTime = new Map<number, string>();
+  for (const { stylistId, slots } of perStylist) {
+    for (const d of slots) if (!byTime.has(d.getTime())) byTime.set(d.getTime(), stylistId);
+  }
+  return [...byTime.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([t, stylistId]) => ({ startAt: new Date(t).toISOString(), stylistId }));
+}
+
 export interface CreateBookingInput {
   stylistId: string;
   variantIds: string[];
@@ -222,7 +260,7 @@ export async function createBooking(
         }),
         shopPhone: setting?.shopPhone ?? "089 57933371",
         cancelCutoffHours: Math.round((setting?.cancellationCutoffMin ?? 120) / 60),
-        adminUrl: `${siteUrl()}/admin/appointments`,
+        adminUrl: `${siteUrl()}/admin/appointments/${appt.id}`,
       });
     } catch (e) {
       console.error("confirmation email failed:", e);

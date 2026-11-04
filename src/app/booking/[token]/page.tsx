@@ -5,6 +5,7 @@ import { getLocale } from "@/lib/locale";
 import { tName } from "@/lib/service-i18n";
 import { msUntil } from "@/lib/time";
 import { cancelBooking } from "./actions";
+import { ConfirmButton } from "@/components/confirm-button";
 
 export const dynamic = "force-dynamic";
 
@@ -113,9 +114,12 @@ export default async function ManageBookingPage({
       ) : (
         <form action={cancelBooking} className="mt-4">
           <input type="hidden" name="token" value={token} />
-          <button className="rounded-full border border-red-300 px-6 py-2.5 text-sm font-medium text-red-700 transition hover:bg-red-50">
+          <ConfirmButton
+            message={t.cancelConfirm}
+            className="rounded-full border border-red-300 px-6 py-2.5 text-sm font-medium text-red-700 transition hover:bg-red-50"
+          >
             {t.cancel}
-          </button>
+          </ConfirmButton>
         </form>
       )}
     </Shell>

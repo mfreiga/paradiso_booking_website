@@ -114,6 +114,8 @@ const de = {
     lengthHint: "Nicht sicher? Schätz einfach, wir schauen es uns vor Ort an.",
     lengths: { Kurz: "Kurz", Mittel: "Mittel", Lang: "Lang" } as Record<string, string>,
     whoTitle: "Bei wem?",
+    anyBarber: "Egal wer",
+    anyBarberHint: "Erste freie Zeit bei allen Friseur:innen",
     noCombo: "Diese Kombination bietet gerade niemand bei uns an. Ändere bitte deine Auswahl.",
     noReviews: "Noch keine Bewertungen",
     whenTitle: "Wann passt es dir?",
@@ -157,6 +159,7 @@ const de = {
     status: "Status",
     tooLate: "So kurzfristig kannst du nicht mehr online absagen. Ruf uns bitte an",
     cancel: "Termin absagen",
+    cancelConfirm: "Termin wirklich absagen? Die Zeit wird dann für andere frei.",
     payNote: "Zahlung im Salon",
     from: "ab",
     addToCalendar: "In den Kalender eintragen",
@@ -178,6 +181,8 @@ const de = {
     send: "Bewertung abschicken",
     sending: "Wird gesendet…",
     thanks: "Danke! Wir schauen kurz drüber und schalten die Bewertung dann frei.",
+    googleAsk: "Schön, dass es dir gefallen hat! Magst du uns auch kurz auf Google bewerten? Das hilft uns sehr.",
+    googleButton: "Auf Google bewerten",
   },
 };
 
@@ -293,6 +298,8 @@ const en: Dict = {
     lengthHint: "Not sure? Just guess, we'll take a look at the salon.",
     lengths: { Kurz: "Short", Mittel: "Medium", Lang: "Long" } as Record<string, string>,
     whoTitle: "With whom?",
+    anyBarber: "No preference",
+    anyBarberHint: "First free time with anyone on the team",
     noCombo: "Nobody here offers this combination right now. Please change your selection.",
     noReviews: "No reviews yet",
     whenTitle: "When suits you?",
@@ -336,6 +343,7 @@ const en: Dict = {
     status: "Status",
     tooLate: "It's too late to cancel online. Please give us a call",
     cancel: "Cancel appointment",
+    cancelConfirm: "Really cancel this appointment? The time will be released for others.",
     payNote: "pay at the salon",
     from: "from",
     addToCalendar: "Add to calendar",
@@ -357,6 +365,8 @@ const en: Dict = {
     send: "Send rating",
     sending: "Sending…",
     thanks: "Thanks! We'll have a quick look and then publish it.",
+    googleAsk: "Glad you enjoyed it! Would you also leave us a quick rating on Google? It helps us a lot.",
+    googleButton: "Rate us on Google",
   },
 };
 

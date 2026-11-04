@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-guard";
-import { toggleServiceField, updateVariant } from "./actions";
+import { createService, renameService, toggleServiceField, updateVariant } from "./actions";
 
 const genderLabel: Record<string, string> = {
   WOMEN: "Damen",
@@ -70,6 +70,16 @@ export default async function ServicesAdminPage() {
                             >
                               {s.name}
                             </span>
+                            <details className="relative">
+                              <summary className="cursor-pointer list-none text-xs text-neutral-400 hover:text-neutral-700 [&::-webkit-details-marker]:hidden">
+                                ✎
+                              </summary>
+                              <form action={renameService} className="absolute left-0 top-6 z-10 flex w-80 gap-2 rounded-lg border border-neutral-200 bg-white p-2 shadow-lg">
+                                <input type="hidden" name="id" value={s.id} />
+                                <input name="name" defaultValue={s.name} maxLength={120} aria-label="Neuer Name" className="min-w-0 flex-1 rounded border border-neutral-300 px-2 py-1 text-sm" />
+                                <button className="rounded bg-neutral-900 px-2 py-1 text-xs text-white">Umbenennen</button>
+                              </form>
+                            </details>
                             {s.isAddOn && (
                               <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-600">
                                 Zusatz
@@ -114,23 +124,26 @@ export default async function ServicesAdminPage() {
                                   step="0.5"
                                   min="0"
                                   defaultValue={(v.priceCents / 100).toString()}
-                                  disabled={v.priceType === "ON_REQUEST"}
-                                  className="w-24 rounded border border-neutral-300 px-2 py-1 disabled:bg-neutral-100"
+                                  aria-label="Preis"
+                                  className="w-24 rounded border border-neutral-300 px-2 py-1"
                                 />
-                                <span className="w-16 text-xs text-neutral-400">
-                                  {v.priceType === "FROM"
-                                    ? "€ (ab)"
-                                    : v.priceType === "ON_REQUEST"
-                                      ? "Anfrage"
-                                      : "€"}
-                                </span>
+                                <select
+                                  name="priceType"
+                                  defaultValue={v.priceType}
+                                  aria-label="Preisart"
+                                  className="rounded border border-neutral-300 px-1 py-1 text-xs text-neutral-600"
+                                >
+                                  <option value="FIXED">€ fest</option>
+                                  <option value="FROM">€ ab</option>
+                                  <option value="ON_REQUEST">auf Anfrage</option>
+                                </select>
                               </div>
                               <div className="flex items-center gap-1">
                                 <input
                                   name="duration"
                                   type="number"
                                   step="5"
-                                  min="0"
+                                  min="5"
                                   defaultValue={v.durationMinutes}
                                   className="w-20 rounded border border-neutral-300 px-2 py-1"
                                 />
@@ -148,6 +161,41 @@ export default async function ServicesAdminPage() {
                       </li>
                     ))}
                   </ul>
+                  <details className="border-t border-neutral-100 px-4 py-2">
+                    <summary className="cursor-pointer text-sm text-orange-700 hover:text-orange-800">+ Leistung hinzufügen</summary>
+                    <form action={createService} className="mt-3 flex flex-wrap items-end gap-2 pb-2 text-sm">
+                      <input type="hidden" name="categoryId" value={cat.id} />
+                      <label className="min-w-48 flex-1">
+                        <span className="text-xs text-neutral-500">Name</span>
+                        <input name="name" required maxLength={120} className="mt-0.5 w-full rounded border border-neutral-300 px-2 py-1" />
+                      </label>
+                      <label>
+                        <span className="text-xs text-neutral-500">Preis €</span>
+                        <input name="price" type="number" step="0.5" min="0" required className="mt-0.5 block w-24 rounded border border-neutral-300 px-2 py-1" />
+                      </label>
+                      <label>
+                        <span className="text-xs text-neutral-500">Preisart</span>
+                        <select name="priceType" className="mt-0.5 block rounded border border-neutral-300 px-1 py-1">
+                          <option value="FIXED">fest</option>
+                          <option value="FROM">ab</option>
+                          <option value="ON_REQUEST">auf Anfrage</option>
+                        </select>
+                      </label>
+                      <label>
+                        <span className="text-xs text-neutral-500">Dauer Min</span>
+                        <input name="duration" type="number" step="5" min="5" defaultValue={30} required className="mt-0.5 block w-20 rounded border border-neutral-300 px-2 py-1" />
+                      </label>
+                      {cat.gender === "WOMEN" && (
+                        <label className="flex items-center gap-1.5 pb-1.5 text-xs text-neutral-600">
+                          <input type="checkbox" name="tiered" value="1" /> mit Haarlänge (Kurz/Mittel/Lang)
+                        </label>
+                      )}
+                      <button className="rounded bg-orange-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-600">Hinzufügen</button>
+                    </form>
+                    <p className="pb-2 text-xs text-neutral-500">
+                      Neue Leistungen bieten automatisch alle aktiven {cat.gender === "MEN" ? "Herren-" : cat.gender === "WOMEN" ? "Damen-" : ""}Friseur:innen an. Ändern unter Friseure.
+                    </p>
+                  </details>
                 </div>
               ))}
           </div>

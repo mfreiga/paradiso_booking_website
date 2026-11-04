@@ -29,6 +29,7 @@ export default async function EditBarberPage({
         id: true,
         name: true,
         bio: true,
+        bioEn: true,
         gender: true,
         isActive: true,
         photoUrl: true,
@@ -112,7 +113,7 @@ export default async function EditBarberPage({
       <form action={saveBarber} className="mt-6 space-y-6 rounded-2xl border border-neutral-200 bg-white p-5">
         <input type="hidden" name="id" value={barber.id} />
         <input type="hidden" name="services_present" value="1" />
-        <BarberProfileFields name={barber.name} bio={barber.bio} gender={barber.gender} />
+        <BarberProfileFields name={barber.name} bio={barber.bio} bioEn={barber.bioEn} gender={barber.gender} />
         <WorkingHoursFields hours={barber.workingHours} />
 
         <fieldset>

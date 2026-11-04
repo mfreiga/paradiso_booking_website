@@ -28,11 +28,11 @@ function nextWeekdayAt(weekday: number, hour: number, minute: number): Date {
 }
 
 const samples = [
-  { barber: "Bassam1", gender: "MEN", service: "Schneiden", variant: "Standard", wd: 2, h: 10, m: 0, name: "Ali Demir", phone: "0151 1111111" },
-  { barber: "Bassam1", gender: "MEN", service: "Waschen, Schneiden, Styling", variant: "Standard", wd: 2, h: 11, m: 0, name: "Jonas Weber", phone: "0151 2222222" },
-  { barber: "Bassam2", gender: "MEN", service: "Bart mit Übergang", variant: "Standard", wd: 3, h: 14, m: 0, name: "Mehmet Kaya", phone: "0151 3333333" },
-  { barber: "Bassam4", gender: "WOMEN", service: "Waschen, Schneiden, Föhnen", variant: "Mittel", wd: 3, h: 9, m: 30, name: "Lena Schulz", phone: "0151 4444444" },
-  { barber: "Bassam5", gender: "WOMEN", service: "Farbe", variant: "Lang", wd: 4, h: 13, m: 0, name: "Sofia Rossi", phone: "0151 5555555" },
+  { barber: "Steven", gender: "MEN", service: "Schneiden", variant: "Standard", wd: 2, h: 10, m: 0, name: "Ali Demir", phone: "0151 1111111" },
+  { barber: "Steven", gender: "MEN", service: "Waschen, Schneiden, Styling", variant: "Standard", wd: 2, h: 11, m: 0, name: "Jonas Weber", phone: "0151 2222222" },
+  { barber: "Bassam", gender: "MEN", service: "Bart mit Übergang", variant: "Standard", wd: 3, h: 14, m: 0, name: "Mehmet Kaya", phone: "0151 3333333" },
+  { barber: "Melina", gender: "WOMEN", service: "Waschen, Schneiden, Föhnen", variant: "Mittel", wd: 3, h: 9, m: 30, name: "Lena Schulz", phone: "0151 4444444" },
+  { barber: "Kuvia", gender: "WOMEN", service: "Farbe", variant: "Lang", wd: 4, h: 13, m: 0, name: "Sofia Rossi", phone: "0151 5555555" },
 ] as const;
 
 async function main() {

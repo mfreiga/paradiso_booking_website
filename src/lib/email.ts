@@ -152,6 +152,8 @@ export interface BookingEmailData {
   adminUrl: string;
   /** false for bookings the salon entered itself (no point alerting them). */
   notifyShop?: boolean;
+  /** new booking (default), moved by the salon, or the day-before reminder. */
+  kind?: "new" | "moved" | "reminder";
 }
 
 export function renderBookingConfirmation(d: BookingEmailData) {
@@ -161,12 +163,22 @@ export function renderBookingConfirmation(d: BookingEmailData) {
   const day = fmtDay(d.startAt, l);
   const time = clock(d.startAt, l);
 
+  const kind = d.kind ?? "new";
   if (l === "en") {
-    const subject = `Your appointment on ${day} at ${time}`;
+    const subject = {
+      new: `Your appointment on ${day} at ${time}`,
+      moved: `Your appointment has been moved: ${day} at ${time}`,
+      reminder: `Reminder: your appointment on ${day} at ${time}`,
+    }[kind];
+    const intro = {
+      new: "thanks for booking. See you soon!",
+      moved: "your appointment has been moved. Here is the new time:",
+      reminder: "just a quick reminder of your appointment. See you soon!",
+    }[kind];
     const html = layout(
       "en",
       `<p>Hi ${esc(d.customerName)},</p>
-    <p>thanks for booking. See you soon!</p>
+    <p>${intro}</p>
     ${detailsBox([esc(services), `${esc(day)}, ${time}`, `with ${esc(d.barberName)} · about ${d.durationMinutes} min`, `${price} · pay at the salon (cash or card)`])}
     <p>${button(d.calendarUrl, "Add to calendar")}${button(d.manageUrl, "View or cancel", false)}</p>
     <p style="font-size:14px;color:#525252">You can cancel online up to ${d.cancelCutoffHours} hours before. After that, just give us a call: ${esc(d.shopPhone)}.</p>`,
@@ -174,7 +186,7 @@ export function renderBookingConfirmation(d: BookingEmailData) {
     );
     const text = `Hi ${d.customerName},
 
-thanks for booking. Here are the details:
+${intro}
 
 ${services}
 ${day}, ${time}
@@ -190,11 +202,20 @@ ${SHOP.name}, ${SHOP.address}`;
     return { subject, html, text };
   }
 
-  const subject = `Dein Termin am ${day} um ${time}`;
+  const subject = {
+    new: `Dein Termin am ${day} um ${time}`,
+    moved: `Dein Termin wurde verschoben: ${day} um ${time}`,
+    reminder: `Erinnerung: dein Termin am ${day} um ${time}`,
+  }[kind];
+  const intro = {
+    new: "danke für deine Buchung. Bis bald!",
+    moved: "dein Termin wurde verschoben. Hier die neue Zeit:",
+    reminder: "kurze Erinnerung an deinen Termin. Wir freuen uns auf dich!",
+  }[kind];
   const html = layout(
     "de",
     `<p>Hallo ${esc(d.customerName)},</p>
-    <p>danke für deine Buchung. Bis bald!</p>
+    <p>${intro}</p>
     ${detailsBox([esc(services), `${esc(day)}, ${time}`, `bei ${esc(d.barberName)} · ca. ${d.durationMinutes} Min.`, `${price} · Zahlung im Salon (bar oder Karte)`])}
     <p>${button(d.calendarUrl, "In den Kalender eintragen")}${button(d.manageUrl, "Termin ansehen oder absagen", false)}</p>
     <p style="font-size:14px;color:#525252">Absagen kannst du online bis ${d.cancelCutoffHours} Stunden vorher. Danach ruf uns bitte kurz an: ${esc(d.shopPhone)}.</p>`,
@@ -202,7 +223,7 @@ ${SHOP.name}, ${SHOP.address}`;
   );
   const text = `Hallo ${d.customerName},
 
-danke für deine Buchung. Hier die Details:
+${intro}
 
 ${services}
 ${day}, ${time}
@@ -255,7 +276,7 @@ export async function sendBookingConfirmation(d: BookingEmailData): Promise<void
       replyTo: shop[0],
       attachments: [{ filename: "paradiso-termin.ics", content: d.ics, contentType: "text/calendar; charset=utf-8; method=PUBLISH" }],
     }),
-    shop.length && d.notifyShop !== false
+    shop.length && d.notifyShop !== false && (d.kind ?? "new") === "new"
       ? deliver({ to: shop, ...renderShopNewBooking(d), replyTo: d.to })
       : Promise.resolve(),
   ]);
@@ -337,5 +358,26 @@ export async function sendReviewRequest(d: ReviewRequestData): Promise<void> {
     subject: en ? "How was your visit at Paradiso?" : "Wie war dein Besuch bei Paradiso?",
     html: layout(en ? "en" : "de", `<p>${en ? "Hi" : "Hallo"} ${esc(d.customerName)},</p><p>${esc(intro)}</p><p>${button(d.reviewUrl, en ? "Leave a rating" : "Jetzt bewerten")}</p>`, `${SHOP.name} · ${SHOP.address}`),
     text: `${en ? "Hi" : "Hallo"} ${d.customerName},\n\n${intro}\n\n${d.reviewUrl}`,
+  });
+}
+
+// ── setup check ────────────────────────────────────────────────────────────
+/** Where shop alerts go (for the settings page). */
+export function shopAlertRecipients(): string[] {
+  return shopRecipients();
+}
+
+/** Sends a short test email so the owner can check delivery from the admin area. */
+export async function sendTestEmail(to: string): Promise<void> {
+  await deliver({
+    to,
+    subject: "Test: E-Mails von Hairstyling Paradiso funktionieren",
+    html: layout(
+      "de",
+      `<p>Wenn du diese E-Mail siehst, ist der E-Mail-Versand der Website richtig eingerichtet. 🎉</p>
+    <p style="font-size:14px;color:#525252">Kund:innen bekommen jetzt Buchungsbestätigungen, Erinnerungen und Absagen.</p>`,
+      `${SHOP.name} · Test aus dem Adminbereich`,
+    ),
+    text: "Wenn du diese E-Mail siehst, ist der E-Mail-Versand der Website richtig eingerichtet.",
   });
 }

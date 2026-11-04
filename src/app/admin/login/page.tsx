@@ -8,7 +8,7 @@ export default async function AdminLoginPage({
   const { error } = await searchParams;
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-neutral-50 p-4">
+    <main className="flex min-h-screen items-center justify-center bg-neutral-50 p-4 text-neutral-900">
       <div className="w-full max-w-sm rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm">
         <h1 className="text-xl font-semibold text-neutral-900">Paradiso Admin</h1>
         <p className="mt-1 text-sm text-neutral-500">Bitte melde dich an.</p>

@@ -1,11 +1,13 @@
 import { prisma } from "@/lib/prisma";
 import { BookingWizard } from "@/components/booking-wizard";
 import { getLocale } from "@/lib/locale";
+import { barberBio } from "@/lib/service-i18n";
 import { emailTransport } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
 export default async function BookPage() {
+  const locale = await getLocale();
   const [categories, stylists, setting] = await Promise.all([
     prisma.category.findMany({
       where: { isActive: true },
@@ -64,7 +66,7 @@ export default async function BookPage() {
       id: b.id,
       name: b.name,
       gender: b.gender,
-      bio: b.bio,
+      bio: barberBio(b, locale),
       photoUrl: b.photoUrl,
       serviceIds: b.services.map((x) => x.serviceId),
       workingWeekdays: [...new Set(b.workingHours.map((w) => w.weekday))],
@@ -76,8 +78,6 @@ export default async function BookPage() {
         .map((r) => ({ displayName: r.displayName, rating: r.rating, comment: r.comment })),
     };
   });
-
-  const locale = await getLocale();
 
   return (
     <BookingWizard

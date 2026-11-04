@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import { getSlots, createBooking } from "@/app/book/actions";
+import { getSlots, getAnySlots, createBooking } from "@/app/book/actions";
 import { dict, dateLocale, type Locale } from "@/lib/i18n";
 import { tName } from "@/lib/service-i18n";
 import { BOOKING_LIMITS } from "@/lib/booking-limits";
@@ -76,6 +76,9 @@ function pickVariant(s: Service, length: Length): Variant {
   return s.variants[0];
 }
 
+/** Pseudo barber id for "no preference": slots are merged across the team. */
+const ANY = "__any__";
+
 function isoWeekday(d: Date) {
   return ((d.getDay() + 6) % 7) + 1; // 1=Mon … 7=Sun
 }
@@ -116,6 +119,8 @@ export function BookingWizard({ categories, barbers, bookingWindowDays, locale, 
   const [slots, setSlots] = useState<string[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [slot, setSlot] = useState<string | null>(null);
+  /** For "no preference": which barber each offered start time belongs to. */
+  const [slotOwners, setSlotOwners] = useState<Record<string, string>>({});
   const [form, setForm] = useState({ name: "", email: "", phone: "", note: "", website: "" });
   const [error, setError] = useState<string | null>(null);
   const [manageToken, setManageToken] = useState<string | null>(null);
@@ -127,13 +132,40 @@ export function BookingWizard({ categories, barbers, bookingWindowDays, locale, 
   const effLength: Length = length ?? "Mittel";
   const items = selectedServices.map((s) => ({ service: s, variant: pickVariant(s, effLength) }));
   const totalDuration = items.reduce((n, it) => n + it.variant.durationMinutes, 0);
-  const totalPrice = items.reduce((n, it) => n + it.variant.priceCents, 0);
+  // Until the hair length is picked, "from" must mean the cheapest length, not medium.
+  const totalPrice = items.reduce(
+    (n, it) =>
+      n +
+      (needsLength && !length && isTiered(it.service)
+        ? Math.min(...it.service.variants.map((v) => v.priceCents))
+        : it.variant.priceCents),
+    0,
+  );
   const variantIds = items.map((it) => it.variant.id);
   const showFrom = items.some((it) => ["FROM", "ON_REQUEST"].includes(it.variant.priceType)) || (needsLength && !length);
   const qualifiedBarbers = barbers.filter((b) =>
     selectedServices.every((s) => b.serviceIds.includes(s.id)),
   );
-  const barber = barbers.find((b) => b.id === barberId) ?? null;
+  // "No preference" only makes sense when more than one barber can do it.
+  const anyBarber: Barber | null =
+    qualifiedBarbers.length > 1
+      ? {
+          id: ANY,
+          name: t.anyBarber,
+          gender: "",
+          bio: null,
+          photoUrl: null,
+          serviceIds: [],
+          workingWeekdays: [...new Set(qualifiedBarbers.flatMap((b) => b.workingWeekdays))],
+          avgRating: 0,
+          reviewCount: 0,
+          reviews: [],
+        }
+      : null;
+  const barber = barbers.find((b) => b.id === barberId) ?? (barberId === ANY ? anyBarber : null);
+  // Who actually does the appointment (for "no preference": the chosen slot's owner).
+  const actualBarberId = barberId === ANY ? (slot ? (slotOwners[slot] ?? null) : null) : barberId;
+  const actualBarber = barbers.find((b) => b.id === actualBarberId) ?? barber;
   const genderCats = categories.filter((c) => c.gender === gender);
 
   function toggle(id: string) {
@@ -146,17 +178,24 @@ export function BookingWizard({ categories, barbers, bookingWindowDays, locale, 
   }
 
   /** `nextDays`: when the first day is already full (e.g. today in the evening), try the following ones. */
+  async function fetchSlots(b: string, day: string): Promise<string[]> {
+    if (b !== ANY) return getSlots(b, day, variantIds);
+    const res = await getAnySlots(day, variantIds);
+    setSlotOwners(Object.fromEntries(res.map((r) => [r.startAt, r.stylistId])));
+    return res.map((r) => r.startAt);
+  }
+
   function loadSlots(b: string, d: string, nextDays: string[] = []) {
     setLoadingSlots(true);
     setSlots([]);
     setSlot(null);
     startTransition(async () => {
       let day = d;
-      let res = await getSlots(b, day, variantIds);
+      let res = await fetchSlots(b, day);
       for (const next of nextDays.slice(0, 6)) {
         if (res.length > 0) break;
         day = next;
-        res = await getSlots(b, day, variantIds);
+        res = await fetchSlots(b, day);
       }
       if (res.length > 0 && day !== d) {
         setDate(day);
@@ -248,11 +287,11 @@ export function BookingWizard({ categories, barbers, bookingWindowDays, locale, 
   }
 
   function submit() {
-    if (!barberId || !slot) return;
+    if (!actualBarberId || !slot) return;
     setError(null);
     startTransition(async () => {
       const res = await createBooking({
-        stylistId: barberId,
+        stylistId: actualBarberId,
         variantIds,
         startAt: slot,
         name: form.name,
@@ -428,6 +467,26 @@ export function BookingWizard({ categories, barbers, bookingWindowDays, locale, 
             <p className="text-sm text-neutral-400">{t.noCombo}</p>
           ) : (
             <div className="grid grid-cols-2 gap-3">
+              {anyBarber && (
+                <button
+                  onClick={() => {
+                    setBarberId(ANY);
+                    const days = upcomingDays(anyBarber);
+                    const d = days[0]?.date ?? null;
+                    setDate(d);
+                    setViewMonth(null);
+                    setStep("time");
+                    if (d) loadSlots(ANY, d, days.slice(1).map((x) => x.date));
+                  }}
+                  className="col-span-2 flex items-center gap-4 rounded-2xl border border-orange-500/40 bg-orange-500/10 p-4 text-left transition hover:border-orange-400"
+                >
+                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-orange-500 text-xl text-white">✂</span>
+                  <span>
+                    <span className="block font-medium">{t.anyBarber}</span>
+                    <span className="block text-xs text-neutral-300">{t.anyBarberHint}</span>
+                  </span>
+                </button>
+              )}
               {qualifiedBarbers.map((b) => (
                 <button
                   key={b.id}
@@ -459,7 +518,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays, locale, 
                       <div className="mt-0.5 text-xs text-neutral-400">{t.noReviews}</div>
                     )}
                     {b.bio && (
-                      <p className="mt-1 line-clamp-2 text-xs text-neutral-400">{tName(b.bio, locale)}</p>
+                      <p className="mt-1 line-clamp-2 text-xs text-neutral-400">{b.bio}</p>
                     )}
                     {b.reviews[0]?.comment && (
                       <p className="mt-1 line-clamp-2 text-xs italic text-neutral-400">
@@ -516,7 +575,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays, locale, 
           <div className="mb-4 rounded-xl border border-white/10 bg-white/5 p-4 text-sm">
             <div className="font-medium">{items.map((it) => tName(it.service.name, locale) + (isTiered(it.service) ? ` (${t.lengths[effLength]})` : "")).join(", ")}</div>
             <div className="text-neutral-400">
-              {barber.name} · {fmtTime(slot)} · {new Date(slot).toLocaleDateString(loc, { weekday: "long", day: "2-digit", month: "long", timeZone: "Europe/Berlin" })}
+              {actualBarber?.name} · {fmtTime(slot)} · {new Date(slot).toLocaleDateString(loc, { weekday: "long", day: "2-digit", month: "long", timeZone: "Europe/Berlin" })}
             </div>
             <div className="mt-1">
               {showFrom ? `${t.from} ` : ""}
@@ -586,7 +645,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays, locale, 
           <div className="mx-auto mt-5 max-w-sm rounded-xl border border-white/10 bg-white/5 p-4 text-left text-sm">
             <div className="font-medium">{items.map((it) => tName(it.service.name, locale)).join(", ")}</div>
             <div className="text-neutral-400">
-              {barber.name} · {new Date(slot).toLocaleDateString(loc, { weekday: "long", day: "2-digit", month: "long", timeZone: "Europe/Berlin" })} {t.at} {fmtTime(slot)}{t.clock ? ` ${t.clock}` : ""}
+              {actualBarber?.name} · {new Date(slot).toLocaleDateString(loc, { weekday: "long", day: "2-digit", month: "long", timeZone: "Europe/Berlin" })} {t.at} {fmtTime(slot)}{t.clock ? ` ${t.clock}` : ""}
             </div>
             <div className="mt-1">
               {showFrom ? `${t.from} ` : ""}

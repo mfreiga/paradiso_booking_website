@@ -108,6 +108,8 @@ model Stylist {
   name         String
   gender       StaffGender
   bio          String?
+  /// English version of the bio for the EN site (falls back to `bio`).
+  bioEn        String?
   photoUrl     String?
   /// Uploaded portrait (resized client-side, ≤ 1 MB), served by /stylist-photo/[id].
   photoData    Bytes?
@@ -201,6 +203,8 @@ model Appointment {
   source               AppointmentSource @default(CUSTOMER)
   /// Customer's site language at booking time ("de" | "en") — used for emails.
   locale               String            @default("de")
+  /// Set when the day-before reminder email went out (cleared on reschedule).
+  reminderSentAt       DateTime?         @db.Timestamptz(3)
   items                AppointmentItem[]
   review               Review?
   createdAt            DateTime          @default(now())

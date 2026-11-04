@@ -6,7 +6,8 @@ import { getLocale } from "@/lib/locale";
 import { LanguageSwitch } from "@/components/language-switch";
 import { ConsentMap } from "@/components/consent-map";
 import { siteUrl } from "@/lib/site-url";
-import { tName } from "@/lib/service-i18n";
+import { barberBio } from "@/lib/service-i18n";
+import { featuredPrices, type FeaturedPrice } from "@/lib/featured-prices";
 import interiorWide from "@/assets/photos/interior-wide.jpg";
 import storefront from "@/assets/photos/storefront.jpg";
 import reception from "@/assets/photos/reception.jpg";
@@ -15,10 +16,14 @@ import washBasins from "@/assets/photos/wash-basins.jpg";
 
 export const dynamic = "force-dynamic";
 
-// Real shop data (Google Business profile)
-const ADDRESS = "Augustenstraße 72, 80333 München";
-const PHONE_DISPLAY = "089 57933371";
-const PHONE_TEL = "+498957933371";
+// Fallbacks; the live phone/address come from the admin settings.
+const DEFAULT_ADDRESS = "Augustenstraße 72, 80333 München";
+const DEFAULT_PHONE = "089 57933371";
+/** "089 57933371" → "+498957933371" for tel: links (German numbers). */
+const telHref = (phone: string) => {
+  const digits = phone.replace(/[^\d+]/g, "");
+  return digits.startsWith("+") ? digits : `+49${digits.replace(/^0/, "")}`;
+};
 const GOOGLE_RATING = "4,3";
 const GOOGLE_REVIEW_COUNT = 382;
 const GOOGLE_MAPS_URL =
@@ -78,15 +83,22 @@ export default async function HomePage() {
   const t = dict[locale].home;
   const weekdays = dict[locale].weekdaysLong;
 
-  const stylists = await prisma.stylist.findMany({
-    omit: { photoData: true },
-    where: { isActive: true },
-    orderBy: { displayOrder: "asc" },
-    include: {
-      reviews: { where: { status: "PUBLISHED" }, select: { rating: true } },
-      workingHours: { select: { weekday: true, startMinutes: true, endMinutes: true } },
-    },
-  });
+  const [stylists, prices, setting] = await Promise.all([
+    prisma.stylist.findMany({
+      omit: { photoData: true },
+      where: { isActive: true },
+      orderBy: { displayOrder: "asc" },
+      include: {
+        reviews: { where: { status: "PUBLISHED" }, select: { rating: true } },
+        workingHours: { select: { weekday: true, startMinutes: true, endMinutes: true } },
+      },
+    }),
+    featuredPrices(),
+    prisma.setting.findUnique({ where: { id: 1 }, select: { shopPhone: true, shopAddress: true } }),
+  ]);
+  const ADDRESS = setting?.shopAddress || DEFAULT_ADDRESS;
+  const PHONE_DISPLAY = setting?.shopPhone || DEFAULT_PHONE;
+  const PHONE_TEL = telHref(PHONE_DISPLAY);
 
   // Shop hours = union of all barbers' working hours per weekday.
   const hoursByDay = new Map<number, { start: number; end: number }>();
@@ -108,12 +120,23 @@ export default async function HomePage() {
     ["#anfahrt", t.navContact],
   ];
 
-  const priceRow = (label: string, price: string, highlight = false) => (
-    <li key={label} className="flex justify-between gap-4 text-neutral-300">
-      <span>{label}</span>
-      <span className={`shrink-0 font-medium ${highlight ? "text-orange-400" : "text-white"}`}>{price}</span>
-    </li>
-  );
+  const money = (cents: number) =>
+    new Intl.NumberFormat(locale === "en" ? "en-GB" : "de-DE", {
+      style: "currency",
+      currency: "EUR",
+      minimumFractionDigits: cents % 100 === 0 ? 0 : 2,
+    }).format(cents / 100);
+  // Hidden when the service is deactivated/renamed in the admin area.
+  const priceRow = (label: string, p: FeaturedPrice, highlight = false) =>
+    p && (
+      <li key={label} className="flex justify-between gap-4 text-neutral-300">
+        <span>{label}</span>
+        <span className={`shrink-0 font-medium ${highlight ? "text-orange-400" : "text-white"}`}>
+          {p.from ? `${t.from} ` : ""}
+          {money(p.cents)}
+        </span>
+      </li>
+    );
   const h2 = "font-display text-3xl font-semibold sm:text-4xl";
 
   return (
@@ -214,20 +237,14 @@ export default async function HomePage() {
           <div className="rounded-3xl border border-white/10 bg-white/5 p-7">
             <h3 className="font-display text-2xl font-semibold">{t.women}</h3>
             <ul className="mt-5 space-y-3 text-sm">
-              {priceRow(t.womenList[0], `${t.from} 36 €`)}
-              {priceRow(t.womenList[1], `${t.from} 42 €`)}
-              {priceRow(t.womenList[2], `${t.from} 38 €`)}
-              {priceRow(t.womenList[3], `${t.from} 98 €`)}
+              {t.womenList.map((label, i) => priceRow(label, prices.women[i]))}
             </ul>
             <p className="mt-5 text-xs text-neutral-500">{t.womenMore}</p>
           </div>
           <div className="rounded-3xl border border-white/10 bg-white/5 p-7">
             <h3 className="font-display text-2xl font-semibold">{t.men}</h3>
             <ul className="mt-5 space-y-3 text-sm">
-              {priceRow(t.menList[0], "16 €")}
-              {priceRow(t.menList[1], "19 €")}
-              {priceRow(t.menList[2], "19 €")}
-              {priceRow(t.menList[3], "14 €")}
+              {t.menList.map((label, i) => priceRow(label, prices.men[i]))}
             </ul>
             <p className="mt-5 text-xs text-neutral-500">{t.menMore}</p>
           </div>
@@ -235,8 +252,7 @@ export default async function HomePage() {
             <span className="absolute -top-3 right-6 rounded-full bg-orange-500 px-3 py-1 text-xs font-semibold text-white">{t.deal}</span>
             <h3 className="font-display text-2xl font-semibold">{t.students}</h3>
             <ul className="mt-5 space-y-3 text-sm">
-              {priceRow(t.studentsList[0], "11 €", true)}
-              {priceRow(t.studentsList[1], "16 €", true)}
+              {t.studentsList.map((label, i) => priceRow(label, prices.students[i], true))}
             </ul>
             <p className="mt-5 text-xs text-neutral-400">{t.studentsNote}</p>
           </div>
@@ -278,7 +294,7 @@ export default async function HomePage() {
                         <Stars rating={avg} />
                       </p>
                     )}
-                    {st.bio && <p className="mt-2 text-xs leading-relaxed text-neutral-400">{tName(st.bio, locale)}</p>}
+                    {barberBio(st, locale) && <p className="mt-2 text-xs leading-relaxed text-neutral-400">{barberBio(st, locale)}</p>}
                   </div>
                 </div>
               );

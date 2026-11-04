@@ -10,6 +10,7 @@ const nav = [
   { href: "/admin/services", label: "Leistungen" },
   { href: "/admin/barbers", label: "Friseure" },
   { href: "/admin/reviews", label: "Bewertungen" },
+  { href: "/admin/settings", label: "Einstellungen" },
 ];
 
 export default async function AdminLayout({

@@ -12,6 +12,8 @@ export interface AvailabilityOptions {
   now?: Date;
   /** Admin manual entry: skip the minimum-lead-time filter. */
   ignoreLeadTime?: boolean;
+  /** Rescheduling: treat this appointment's own time as free. */
+  excludeAppointmentId?: string;
 }
 
 /**
@@ -57,6 +59,7 @@ export async function getAvailableSlots(
       where: {
         stylistId: opts.stylistId,
         status: { in: ["PENDING", "CONFIRMED"] },
+        ...(opts.excludeAppointmentId ? { id: { not: opts.excludeAppointmentId } } : {}),
         startAt: { lt: dayEndUTC },
         endAt: { gt: dayStartUTC },
       },

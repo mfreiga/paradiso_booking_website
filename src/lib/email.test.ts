@@ -96,3 +96,37 @@ describe("sendBookingConfirmation without a transport", () => {
     vi.unstubAllEnvs();
   });
 });
+
+describe("moved / reminder emails", () => {
+  it("German subjects and intros per kind", () => {
+    const moved = renderBookingConfirmation({ ...base, kind: "moved" });
+    expect(moved.subject).toBe("Dein Termin wurde verschoben: Donnerstag, 5. November um 11:00 Uhr");
+    expect(moved.text).toContain("Hier die neue Zeit");
+    const reminder = renderBookingConfirmation({ ...base, kind: "reminder" });
+    expect(reminder.subject).toBe("Erinnerung: dein Termin am Donnerstag, 5. November um 11:00 Uhr");
+    expect(reminder.html).toContain(base.manageUrl); // can still cancel from the reminder
+  });
+
+  it("English subjects per kind", () => {
+    expect(renderBookingConfirmation({ ...base, locale: "en", kind: "moved" }).subject).toBe(
+      "Your appointment has been moved: Thursday 5 November at 11:00",
+    );
+    expect(renderBookingConfirmation({ ...base, locale: "en", kind: "reminder" }).subject).toBe(
+      "Reminder: your appointment on Thursday 5 November at 11:00",
+    );
+  });
+
+  it("never alerts the shop for a reminder or a move", async () => {
+    vi.stubEnv("RESEND_API_KEY", "");
+    vi.stubEnv("SMTP_URL", "");
+    vi.stubEnv("NOTIFY_EMAIL", "owner@example.com");
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    await sendBookingConfirmation({ ...base, kind: "reminder", notifyShop: true });
+    await sendBookingConfirmation({ ...base, kind: "moved", notifyShop: true });
+    const out = log.mock.calls.map((a) => String(a[0])).join("\n");
+    expect(out).toContain("To:      kunde@example.com");
+    expect(out).not.toContain("owner@example.com");
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+  });
+});
