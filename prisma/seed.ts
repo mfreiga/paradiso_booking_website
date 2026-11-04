@@ -59,7 +59,7 @@ const catalog: CategorySeed[] = [
     gender: "WOMEN",
     services: [
       { name: "Ansatzfarbe", variants: [v("Kurz", 37, 45), v("Mittel (2 cm)", 48, 60)] },
-      { name: "Farbe", variants: [v("Kurz", 42, 60), v("Mittel", 48, 75), v("Lang", 57, 90)] },
+      { name: "Farbe", isPopular: true, variants: [v("Kurz", 42, 60), v("Mittel", 48, 75), v("Lang", 57, 90)] },
       { name: "Tönung", variants: [v("Kurz", 35, 45), v("Mittel", 41, 60), v("Lang", 48, 75)] },
     ],
   },
@@ -77,10 +77,10 @@ const catalog: CategorySeed[] = [
     gender: "WOMEN",
     services: [
       { name: "Haubensträhnen", variants: [v("Standard", 26, 45, "FROM")] },
-      { name: "Foliensträhnen (Oberkopf)", variants: [v("Kurz", 38, 60), v("Mittel", 46, 75), v("Lang", 51, 90)] },
+      { name: "Foliensträhnen (Oberkopf)", isPopular: true, variants: [v("Kurz", 38, 60), v("Mittel", 46, 75), v("Lang", 51, 90)] },
       { name: "Foliensträhnen (halber Kopf)", variants: [v("Kurz", 44, 75), v("Mittel", 49, 90), v("Lang", 55, 105)] },
       { name: "Foliensträhnen (ganzer Kopf)", variants: [v("Kurz", 51, 90), v("Mittel", 59, 105), v("Lang", 69, 120)] },
-      { name: "Balayage (inkl. Glossing)", variants: [v("Mittel", 98, 150, "FROM"), v("Lang", 129, 180, "FROM")] },
+      { name: "Balayage (inkl. Glossing)", isPopular: true, variants: [v("Mittel", 98, 150, "FROM"), v("Lang", 129, 180, "FROM")] },
     ],
   },
   {
@@ -124,7 +124,7 @@ const catalog: CategorySeed[] = [
     gender: "MEN",
     services: [
       { name: "Schneiden", isPopular: true, variants: [v("Standard", 16, 20)] },
-      { name: "Schneiden (Seiten 0 mm mit Übergang)", variants: [v("Standard", 19, 30)] },
+      { name: "Schneiden (Seiten 0 mm mit Übergang)", isPopular: true, variants: [v("Standard", 19, 30)] },
       { name: "Waschen, Schneiden, Styling", isPopular: true, variants: [v("Standard", 19, 30)] },
       { name: "Haare Nassrasur", variants: [v("Standard", 19, 30)] },
       { name: "Bart mit Übergang", isPopular: true, variants: [v("Standard", 14, 20)] },

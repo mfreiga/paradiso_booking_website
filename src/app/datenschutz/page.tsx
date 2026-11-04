@@ -35,11 +35,18 @@ export default function DatenschutzPage() {
             </h2>
             <p className="mt-2">
               Wenn du online einen Termin buchst, verarbeiten wir die von dir
-              angegebenen Daten (Name, E-Mail-Adresse, Telefonnummer,
-              gewünschte Leistung, Terminzeit sowie optionale Anmerkungen)
-              ausschließlich zur Durchführung und Verwaltung deines Termins
-              (Art. 6 Abs. 1 lit. b DSGVO). Die Daten werden nicht an Dritte
-              zu Werbezwecken weitergegeben.
+              angegebenen Daten (Name, E-Mail-Adresse, freiwillig deine
+              Telefonnummer, gewünschte Leistung, Terminzeit sowie optionale
+              Anmerkungen) ausschließlich zur Durchführung und Verwaltung
+              deines Termins (Art. 6 Abs. 1 lit. b DSGVO). Die Daten werden
+              nicht an Dritte zu Werbezwecken weitergegeben.
+            </p>
+            <p className="mt-2">
+              Zwölf Monate nach deinem Termin löschen wir Name, E-Mail-Adresse,
+              Telefonnummer und Anmerkung automatisch. Übrig bleiben nur
+              anonyme Angaben (Datum, Leistung, Preis). Eine veröffentlichte
+              Bewertung bleibt mit deinem Vornamen und dem ersten Buchstaben
+              deines Nachnamens stehen, bis du uns bittest, sie zu löschen.
             </p>
           </section>
 
@@ -48,19 +55,33 @@ export default function DatenschutzPage() {
               3. E-Mail-Benachrichtigungen
             </h2>
             <p className="mt-2">
-              Zur Bestätigung deiner Buchung und für die Bitte um eine
-              Bewertung nach deinem Termin versenden wir E-Mails über den
-              Dienstleister Resend. Dabei wird deine E-Mail-Adresse an diesen
-              Dienstleister übermittelt.
+              Wir schicken dir E-Mails zu deinem Termin: die Bestätigung (mit
+              Kalendereintrag), eine Erinnerung am Tag davor, eine Nachricht,
+              wenn der Termin verschoben oder abgesagt wird, und nach dem
+              Termin die Bitte um eine Bewertung (Art. 6 Abs. 1 lit. b und f
+              DSGVO). Für den Versand nutzen wir einen E-Mail-Dienstleister
+              (Google Ireland Limited für Gmail bzw. Resend Inc.), an den
+              dafür deine E-Mail-Adresse und der Inhalt der Nachricht
+              übermittelt werden. Wenn du keine Bewertungsanfrage möchtest,
+              antworte einfach kurz auf eine unserer E-Mails.
             </p>
           </section>
 
           <section>
-            <h2 className="text-base font-semibold text-white">4. Hosting</h2>
+            <h2 className="text-base font-semibold text-white">4. Hosting und Datenbank</h2>
             <p className="mt-2">
               Diese Website wird bei Netlify gehostet. Beim Aufruf der Seite
               werden technisch notwendige Daten (z.&nbsp;B. IP-Adresse,
-              Zeitpunkt des Zugriffs) in Server-Logs verarbeitet.
+              Zeitpunkt des Zugriffs) in Server-Logs verarbeitet. Die
+              Termindaten liegen in einer Datenbank bei Neon (Rechenzentrum in
+              Frankfurt am Main).
+            </p>
+            <p className="mt-2">
+              Wir setzen ein einziges Cookie („lang“), das sich deine gewählte
+              Sprache (Deutsch oder Englisch) merkt. Es ist technisch nötig,
+              enthält keine persönlichen Daten und wird nicht zur Analyse
+              genutzt. Statistik- oder Werbe-Tracking gibt es auf dieser
+              Website nicht.
             </p>
           </section>
 

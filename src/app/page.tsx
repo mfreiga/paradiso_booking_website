@@ -15,12 +15,9 @@ import washBasins from "@/assets/photos/wash-basins.jpg";
 
 export const dynamic = "force-dynamic";
 
-// Real shop data (Google Business profile)
-const ADDRESS = "Augustenstraße 72, 80333 München";
-const PHONE_DISPLAY = "089 57933371";
-const PHONE_TEL = "+498957933371";
-const GOOGLE_RATING = "4,3";
-const GOOGLE_REVIEW_COUNT = 382;
+// Fallbacks only — the live values come from the admin settings.
+const DEFAULT_ADDRESS = "Augustenstraße 72, 80333 München";
+const DEFAULT_PHONE = "089 57933371";
 const GOOGLE_MAPS_URL =
   "https://www.google.com/maps/search/?api=1&query=Hairstyling+Paradiso+Augustenstra%C3%9Fe+72+M%C3%BCnchen";
 const INSTAGRAM_URL = "https://www.instagram.com/paradiso_augustenstr_72_/";
@@ -39,6 +36,8 @@ const GOOGLE_REVIEWS = [
     text: "Top! Es gibt kein anderes Wort, was den Service, den Schnitt und die Leute hier beschreibt. Nachdem ich mehr als 20 unterschiedliche Friseure hier in München besucht habe, wurde ich nie so herzlich aufgenommen wie hier.",
   },
 ];
+
+const SCHEMA_DAYS = ["", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 const SALON_PHOTOS = [
   { src: reception, alt: "reception" },
@@ -78,15 +77,63 @@ export default async function HomePage() {
   const t = dict[locale].home;
   const weekdays = dict[locale].weekdaysLong;
 
-  const stylists = await prisma.stylist.findMany({
-    omit: { photoData: true },
-    where: { isActive: true },
-    orderBy: { displayOrder: "asc" },
-    include: {
-      reviews: { where: { status: "PUBLISHED" }, select: { rating: true } },
-      workingHours: { select: { weekday: true, startMinutes: true, endMinutes: true } },
-    },
-  });
+  const [stylists, setting, featured, ownReviews] = await Promise.all([
+    prisma.stylist.findMany({
+      omit: { photoData: true },
+      where: { isActive: true },
+      orderBy: { displayOrder: "asc" },
+      include: {
+        reviews: { where: { status: "PUBLISHED" }, select: { rating: true } },
+        workingHours: { select: { weekday: true, startMinutes: true, endMinutes: true } },
+      },
+    }),
+    prisma.setting.findUnique({ where: { id: 1 } }),
+    // Price cards: services marked ★ in the admin, plus the student category.
+    prisma.service.findMany({
+      where: {
+        isActive: true,
+        category: { isActive: true },
+        OR: [{ isPopular: true }, { category: { name: "Studentenrabatt" } }],
+      },
+      orderBy: [{ category: { displayOrder: "asc" } }, { displayOrder: "asc" }],
+      include: { variants: true, category: { select: { name: true } } },
+    }),
+    prisma.review.findMany({
+      where: { status: "PUBLISHED", comment: { not: null } },
+      orderBy: { createdAt: "desc" },
+      take: 3,
+      include: { stylist: { select: { name: true } } },
+    }),
+  ]);
+
+  const ADDRESS = setting?.shopAddress || DEFAULT_ADDRESS;
+  const PHONE_DISPLAY = setting?.shopPhone || DEFAULT_PHONE;
+  const PHONE_TEL = `+49${PHONE_DISPLAY.replace(/\D/g, "").replace(/^0/, "")}`;
+  const ratingNum = setting?.googleRating ?? 4.3;
+  const GOOGLE_RATING = ratingNum.toLocaleString(locale === "de" ? "de-DE" : "en-GB", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const GOOGLE_REVIEW_COUNT = setting?.googleReviewCount ?? 0;
+  const cutoffMin = setting?.cancellationCutoffMin ?? 120;
+  const cutoffText =
+    cutoffMin % 60 === 0
+      ? `${cutoffMin / 60} ${locale === "de" ? (cutoffMin === 60 ? "Stunde" : "Stunden") : cutoffMin === 60 ? "hour" : "hours"}`
+      : `${cutoffMin} ${locale === "de" ? "Minuten" : "minutes"}`;
+
+  const euro = (c: number) =>
+    new Intl.NumberFormat(locale === "de" ? "de-DE" : "en-GB", { style: "currency", currency: "EUR", maximumFractionDigits: c % 100 ? 2 : 0 }).format(c / 100);
+  const priceOf = (s: (typeof featured)[number]) => {
+    const min = Math.min(...s.variants.map((v) => v.priceCents));
+    const from = s.variants.length > 1 || s.variants.some((v) => v.priceType !== "FIXED");
+    return `${from ? `${t.from} ` : ""}${euro(min)}`;
+  };
+  const isStudent = (s: (typeof featured)[number]) => s.category.name === "Studentenrabatt";
+  // Own published reviews first, topped up with the two Google quotes.
+  const quotes = [
+    ...ownReviews.map((r) => ({ name: r.displayName, rating: r.rating, text: r.comment ?? "", source: `${dict[locale].book.with} ${r.stylist.name}` })),
+    ...GOOGLE_REVIEWS.map((r) => ({ ...r, source: t.onGoogle })),
+  ].slice(0, 2);
+  const womenItems = featured.filter((s) => s.gender === "WOMEN" && !isStudent(s)).slice(0, 5);
+  const menItems = featured.filter((s) => s.gender === "MEN" && !isStudent(s)).slice(0, 5);
+  const studentItems = featured.filter(isStudent).slice(0, 3);
 
   // Shop hours = union of all barbers' working hours per weekday.
   const hoursByDay = new Map<number, { start: number; end: number }>();
@@ -188,7 +235,7 @@ export default async function HomePage() {
             className="mt-5 inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-white/15 bg-white/5 px-5 py-2 text-sm text-neutral-200 backdrop-blur transition hover:bg-white/10"
           >
             <span className="font-semibold text-white">{GOOGLE_RATING}</span>
-            <Stars rating={4} />
+            <Stars rating={ratingNum} />
             <span className="text-neutral-400">
               · {GOOGLE_REVIEW_COUNT} {t.googleReviews}
             </span>
@@ -213,31 +260,18 @@ export default async function HomePage() {
         <div className="mt-10 grid gap-5 md:grid-cols-3">
           <div className="rounded-3xl border border-white/10 bg-white/5 p-7">
             <h3 className="font-display text-2xl font-semibold">{t.women}</h3>
-            <ul className="mt-5 space-y-3 text-sm">
-              {priceRow(t.womenList[0], `${t.from} 36 €`)}
-              {priceRow(t.womenList[1], `${t.from} 42 €`)}
-              {priceRow(t.womenList[2], `${t.from} 38 €`)}
-              {priceRow(t.womenList[3], `${t.from} 98 €`)}
-            </ul>
+            <ul className="mt-5 space-y-3 text-sm">{womenItems.map((s) => priceRow(tName(s.name, locale, s.nameEn), priceOf(s)))}</ul>
             <p className="mt-5 text-xs text-neutral-500">{t.womenMore}</p>
           </div>
           <div className="rounded-3xl border border-white/10 bg-white/5 p-7">
             <h3 className="font-display text-2xl font-semibold">{t.men}</h3>
-            <ul className="mt-5 space-y-3 text-sm">
-              {priceRow(t.menList[0], "16 €")}
-              {priceRow(t.menList[1], "19 €")}
-              {priceRow(t.menList[2], "19 €")}
-              {priceRow(t.menList[3], "14 €")}
-            </ul>
+            <ul className="mt-5 space-y-3 text-sm">{menItems.map((s) => priceRow(tName(s.name, locale, s.nameEn), priceOf(s)))}</ul>
             <p className="mt-5 text-xs text-neutral-500">{t.menMore}</p>
           </div>
           <div className="relative rounded-3xl border border-orange-500/40 bg-gradient-to-b from-orange-500/15 to-transparent p-7">
             <span className="absolute -top-3 right-6 rounded-full bg-orange-500 px-3 py-1 text-xs font-semibold text-white">{t.deal}</span>
             <h3 className="font-display text-2xl font-semibold">{t.students}</h3>
-            <ul className="mt-5 space-y-3 text-sm">
-              {priceRow(t.studentsList[0], "11 €", true)}
-              {priceRow(t.studentsList[1], "16 €", true)}
-            </ul>
+            <ul className="mt-5 space-y-3 text-sm">{studentItems.map((s) => priceRow(tName(s.name, locale, s.nameEn), priceOf(s), true))}</ul>
             <p className="mt-5 text-xs text-neutral-400">{t.studentsNote}</p>
           </div>
         </div>
@@ -311,20 +345,20 @@ export default async function HomePage() {
           >
             <span className="font-display text-5xl font-semibold text-white">{GOOGLE_RATING}</span>
             <span className="mt-2 text-lg">
-              <Stars rating={4} />
+              <Stars rating={ratingNum} />
             </span>
             <span className="mt-2 text-sm text-neutral-400">
               {GOOGLE_REVIEW_COUNT} {t.reviewsOnGoogle}
             </span>
             <span className="mt-3 text-sm font-medium text-orange-400">{t.readAllGoogle} →</span>
           </a>
-          {GOOGLE_REVIEWS.map((r) => (
-            <figure key={r.name} className="rounded-3xl border border-white/10 bg-neutral-900 p-6">
+          {quotes.map((r) => (
+            <figure key={r.name + r.text.slice(0, 20)} className="rounded-3xl border border-white/10 bg-neutral-900 p-6">
               <Stars rating={r.rating} />
               <blockquote className="mt-3 text-sm leading-relaxed text-neutral-300">„{r.text}“</blockquote>
               <figcaption className="mt-4 text-sm">
                 <span className="font-medium">{r.name}</span>
-                <span className="text-neutral-500"> · {t.onGoogle}</span>
+                <span className="text-neutral-500"> · {r.source}</span>
               </figcaption>
             </figure>
           ))}
@@ -343,7 +377,7 @@ export default async function HomePage() {
                   <ChevronIcon className="h-4 w-4" />
                 </span>
               </summary>
-              <p className="px-6 pb-6 text-sm leading-relaxed text-neutral-400">{f.a}</p>
+              <p className="px-6 pb-6 text-sm leading-relaxed text-neutral-400">{f.a.replace("{cutoff}", cutoffText)}</p>
             </details>
           ))}
         </div>
@@ -481,15 +515,12 @@ export default async function HomePage() {
             url: siteUrl(),
             image: `${siteUrl()}/opengraph-image.jpg`,
             sameAs: [INSTAGRAM_URL],
-            openingHoursSpecification: [
-              {
-                "@type": "OpeningHoursSpecification",
-                dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-                opens: "09:00",
-                closes: "20:00",
-              },
-              { "@type": "OpeningHoursSpecification", dayOfWeek: "Saturday", opens: "09:00", closes: "19:00" },
-            ],
+            openingHoursSpecification: [...hoursByDay].map(([day, h]) => ({
+              "@type": "OpeningHoursSpecification",
+              dayOfWeek: SCHEMA_DAYS[day],
+              opens: fmtTime(h.start),
+              closes: fmtTime(h.end),
+            })),
             priceRange: "€€",
           }),
         }}

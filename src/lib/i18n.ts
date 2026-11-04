@@ -71,8 +71,8 @@ const de = {
         a: "Bar oder mit Karte, direkt im Salon.",
       },
       {
-        q: "Wie sage ich meinen Termin ab?",
-        a: "Über den Link in deiner Buchungsbestätigung, bis 2 Stunden vorher. Danach ruf uns bitte an.",
+        q: "Wie sage ich meinen Termin ab oder verschiebe ihn?",
+        a: "Über den Link in deiner Buchungsbestätigung, bis {cutoff} vorher. Dort kannst du ihn auch verschieben. Danach ruf uns bitte an.",
       },
       {
         q: "Wo genau seid ihr?",
@@ -272,8 +272,8 @@ const en: Dict = {
         a: "Cash or card, at the salon.",
       },
       {
-        q: "How do I cancel my appointment?",
-        a: "Use the link in your booking confirmation, up to 2 hours before. After that, please give us a call.",
+        q: "How do I cancel or move my appointment?",
+        a: "Use the link in your booking confirmation, up to {cutoff} before. You can also move it there. After that, please give us a call.",
       },
       {
         q: "Where exactly are you?",

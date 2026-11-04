@@ -1,6 +1,8 @@
 // Sample appointments for the admin Termine view + slot-engine testing.
 // Separate from the catalog seed so it never wipes menu/barber edits.
-//   Run:  npx tsx prisma/seed-appointments.ts
+// Only touches its own demo bookings (@demo.paradiso.test) and refuses to run
+// against anything but a local database.
+//   Run:  npm run db:seed:appointments
 import "dotenv/config";
 import { randomBytes } from "node:crypto";
 import { DateTime } from "luxon";
@@ -28,16 +30,22 @@ function nextWeekdayAt(weekday: number, hour: number, minute: number): Date {
 }
 
 const samples = [
-  { barber: "Bassam1", gender: "MEN", service: "Schneiden", variant: "Standard", wd: 2, h: 10, m: 0, name: "Ali Demir", phone: "0151 1111111" },
-  { barber: "Bassam1", gender: "MEN", service: "Waschen, Schneiden, Styling", variant: "Standard", wd: 2, h: 11, m: 0, name: "Jonas Weber", phone: "0151 2222222" },
-  { barber: "Bassam2", gender: "MEN", service: "Bart mit Übergang", variant: "Standard", wd: 3, h: 14, m: 0, name: "Mehmet Kaya", phone: "0151 3333333" },
-  { barber: "Bassam4", gender: "WOMEN", service: "Waschen, Schneiden, Föhnen", variant: "Mittel", wd: 3, h: 9, m: 30, name: "Lena Schulz", phone: "0151 4444444" },
-  { barber: "Bassam5", gender: "WOMEN", service: "Farbe", variant: "Lang", wd: 4, h: 13, m: 0, name: "Sofia Rossi", phone: "0151 5555555" },
+  { barber: "Steven", gender: "MEN", service: "Schneiden", variant: "Standard", wd: 2, h: 10, m: 0, name: "Ali Demir", phone: "0151 1111111" },
+  { barber: "Bassam", gender: "MEN", service: "Waschen, Schneiden, Styling", variant: "Standard", wd: 2, h: 11, m: 0, name: "Jonas Weber", phone: "0151 2222222" },
+  { barber: "Yousef", gender: "MEN", service: "Bart mit Übergang", variant: "Standard", wd: 3, h: 14, m: 0, name: "Mehmet Kaya", phone: "0151 3333333" },
+  { barber: "Melina", gender: "WOMEN", service: "Waschen, Schneiden, Föhnen", variant: "Mittel", wd: 3, h: 9, m: 30, name: "Lena Schulz", phone: "0151 4444444" },
+  { barber: "Kuvia", gender: "WOMEN", service: "Farbe", variant: "Lang", wd: 4, h: 13, m: 0, name: "Sofia Rossi", phone: "0151 5555555" },
 ] as const;
 
+const DEMO_DOMAIN = "@demo.paradiso.test";
+
 async function main() {
-  await prisma.appointmentItem.deleteMany();
-  await prisma.appointment.deleteMany();
+  if (!/localhost|127\.0\.0\.1/.test(process.env.DATABASE_URL ?? "")) {
+    throw new Error("Refusing to create demo bookings: DATABASE_URL is not a local database.");
+  }
+  const old = await prisma.appointment.findMany({ where: { customerEmail: { endsWith: DEMO_DOMAIN } }, select: { id: true } });
+  await prisma.appointmentItem.deleteMany({ where: { appointmentId: { in: old.map((a) => a.id) } } });
+  await prisma.appointment.deleteMany({ where: { id: { in: old.map((a) => a.id) } } });
 
   let created = 0;
   for (const s of samples) {
@@ -61,7 +69,7 @@ async function main() {
         stylistId: barber.id,
         customerName: s.name,
         customerEmail:
-          s.name.toLowerCase().replace(/[^a-z]+/g, ".") + "@example.com",
+          s.name.toLowerCase().replace(/[^a-z]+/g, ".") + DEMO_DOMAIN,
         customerPhone: s.phone,
         startAt,
         endAt,

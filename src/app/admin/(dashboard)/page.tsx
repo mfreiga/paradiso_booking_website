@@ -34,7 +34,7 @@ export default async function AdminDashboardPage() {
   const weekStart = now.startOf("week");
   const utc = (d: DateTime) => d.toUTC().toJSDate();
 
-  const [today, week, recent, offs, pendingReviews] = await Promise.all([
+  const [today, week, recent, offs, pendingReviews, unconfirmed, pushDevices] = await Promise.all([
     prisma.appointment.findMany({
       where: { startAt: { gte: utc(todayStart), lt: utc(todayStart.plus({ days: 1 })) } },
       orderBy: { startAt: "asc" },
@@ -60,6 +60,17 @@ export default async function AdminDashboardPage() {
       include: { stylist: { select: { name: true } } },
     }),
     prisma.review.count({ where: { status: "PENDING" } }),
+    // Online bookings of the last 2 weeks whose confirmation email never went out.
+    prisma.appointment.count({
+      where: {
+        source: "CUSTOMER",
+        customerEmail: { not: "" },
+        confirmationSentAt: null,
+        createdAt: { gte: utc(now.minus({ days: 14 })) },
+        startAt: { gte: utc(now) },
+      },
+    }),
+    prisma.pushSubscription.count(),
   ]);
 
   const z = (d: Date) => DateTime.fromJSDate(d).setZone(TZ);
@@ -110,6 +121,25 @@ export default async function AdminDashboardPage() {
         </div>
       </div>
 
+      {emailTransport() !== "log" && unconfirmed > 0 && (
+        <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+          {unconfirmed === 1 ? "Bei 1 Buchung" : `Bei ${unconfirmed} Buchungen`} ist die Bestätigungs-E-Mail nicht rausgegangen. Bitte die E-Mail-Einstellungen prüfen
+          und die Kund:innen kurz anrufen oder anschreiben (unter{" "}
+          <Link href="/admin/appointments" className="underline">
+            Termine
+          </Link>
+          ).
+        </p>
+      )}
+      {pushDevices === 0 && (
+        <p className="rounded-xl border border-neutral-200 bg-white p-3 text-sm text-neutral-600">
+          Tipp: Unter{" "}
+          <Link href="/admin/settings" className="underline">
+            Einstellungen
+          </Link>{" "}
+          kannst du Benachrichtigungen fürs Handy einschalten, dann siehst du neue Buchungen sofort.
+        </p>
+      )}
       {emailTransport() === "log" && (
         <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
           E-Mails sind noch nicht eingerichtet: Kund:innen bekommen keine Bestätigung und du keine Info über neue Buchungen.

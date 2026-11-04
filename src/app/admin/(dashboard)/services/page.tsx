@@ -23,7 +23,6 @@ const messages: Record<string, [string, "ok" | "err"]> = {
 };
 
 const input = "rounded-lg border border-neutral-300 bg-white px-2 py-1.5 text-sm outline-none focus:border-orange-500";
-const small = "rounded border border-neutral-300 px-2.5 py-1 text-xs text-neutral-600 hover:bg-neutral-100";
 
 function PriceTypeSelect({ name, value = "FIXED" }: { name: string; value?: string }) {
   return (
