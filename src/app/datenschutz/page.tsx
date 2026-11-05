@@ -81,7 +81,15 @@ export default function DatenschutzPage() {
               Sprache (Deutsch oder Englisch) merkt. Es ist technisch nötig,
               enthält keine persönlichen Daten und wird nicht zur Analyse
               genutzt. Statistik- oder Werbe-Tracking gibt es auf dieser
-              Website nicht.
+              Website nicht. (Nur im internen Adminbereich für unser Team
+              kommen technisch nötige Login-Cookies hinzu.)
+            </p>
+            <p className="mt-2">
+              Damit wir neue Buchungen sofort sehen, bekommt das zuständige
+              Team-Mitglied eine Benachrichtigung aufs Handy (mit Name, Uhrzeit
+              und Leistung). Diese Mitteilungen sind Ende-zu-Ende
+              verschlüsselt; der Übermittlungsdienst des Handys (Apple bzw.
+              Google) kann den Inhalt nicht lesen.
             </p>
           </section>
 

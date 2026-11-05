@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-guard";
+import { emailTransport, sendTestEmail } from "@/lib/email";
 
 const clampInt = (v: FormDataEntryValue | null, min: number, max: number, fallback: number) => {
   const n = Number.parseInt(String(v ?? ""), 10);
@@ -30,4 +31,19 @@ export async function saveSettings(formData: FormData) {
 
   for (const p of ["/admin/settings", "/admin", "/", "/book"]) revalidatePath(p);
   redirect("/admin/settings?saved=1");
+}
+
+/** "Test senden" on the settings page: checks the email setup end to end. */
+export async function sendSettingsTestEmail(formData: FormData) {
+  await requireAdmin();
+  const to = String(formData.get("to") ?? "").trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) redirect("/admin/settings?test=invalid");
+  if (emailTransport() === "log") redirect("/admin/settings?test=nosetup");
+  try {
+    await sendTestEmail(to);
+  } catch (e) {
+    console.error("test email failed:", e);
+    redirect("/admin/settings?test=failed");
+  }
+  redirect("/admin/settings?test=sent");
 }

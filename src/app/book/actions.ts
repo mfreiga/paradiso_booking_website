@@ -5,7 +5,7 @@ import { DateTime } from "luxon";
 import { prisma } from "@/lib/prisma";
 import { getAvailabilityRange, getAvailableSlots } from "@/lib/availability";
 import { emailTransport, sendBookingConfirmation } from "@/lib/email";
-import { notifyShop } from "@/lib/push";
+import { notifyStaff } from "@/lib/push";
 import { siteUrl } from "@/lib/site-url";
 import { BOOKING_LIMITS } from "@/lib/booking-limits";
 import { appointmentIcs } from "@/lib/appointment-ics";
@@ -288,11 +288,14 @@ export async function createBooking(
 
     const when = DateTime.fromJSDate(start).setZone(SHOP_TZ).setLocale("de").toFormat("ccc dd.MM., HH:mm");
     const barberName = (await prisma.stylist.findUnique({ where: { id: input.stylistId }, select: { name: true } }))?.name ?? "";
-    await notifyShop({
-      title: `Neue Buchung: ${when}`,
-      body: `${name} · ${barberName} · ${variants.map((v) => v.service.name).join(", ")}`,
-      url: `/admin/calendar?view=day&date=${dateStr}`,
-    });
+    await notifyStaff(
+      {
+        title: `Neue Buchung: ${when}`,
+        body: `${name} · ${barberName} · ${variants.map((v) => v.service.name).join(", ")}`,
+        url: `/admin/calendar?view=day&date=${dateStr}`,
+      },
+      { stylistIds: [input.stylistId] }, // the owner + this booking's barber
+    );
 
     return { ok: true, manageToken };
   } catch (e) {

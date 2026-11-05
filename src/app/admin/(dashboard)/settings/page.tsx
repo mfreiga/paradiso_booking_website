@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-guard";
-import { PushToggle } from "@/components/push-toggle";
-import { getVapidKeys } from "@/lib/push";
-import { saveSettings } from "./actions";
+import Link from "next/link";
+import { emailTransport, shopAlertRecipients } from "@/lib/email";
+import { saveSettings, sendSettingsTestEmail } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -34,14 +34,23 @@ function Select({ name, value, options }: { name: string; value: number; options
   );
 }
 
-export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ saved?: string }> }) {
+const testMsg: Record<string, { ok: boolean; text: string }> = {
+  sent: { ok: true, text: "Test-E-Mail verschickt. Schau ins Postfach (auch in den Spam-Ordner)." },
+  nosetup: { ok: false, text: "Noch kein E-Mail-Versand eingerichtet (siehe oben)." },
+  invalid: { ok: false, text: "Bitte eine gültige E-Mail-Adresse eingeben." },
+  failed: { ok: false, text: "Versand fehlgeschlagen – Zugangsdaten auf Netlify prüfen (Fehler steht im Netlify-Log)." },
+};
+
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ saved?: string; test?: string }> }) {
   await requireAdmin();
   const sp = await searchParams;
-  const [s, devices, vapid] = await Promise.all([
+  const [s, devices] = await Promise.all([
     prisma.setting.findUnique({ where: { id: 1 } }),
     prisma.pushSubscription.count(),
-    getVapidKeys(),
   ]);
+  const transport = emailTransport();
+  const alerts = shopAlertRecipients();
+  const test = sp.test ? testMsg[sp.test] : undefined;
 
   return (
     <div className="max-w-2xl space-y-8">
@@ -50,15 +59,39 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         {sp.saved && <p className="mt-3 rounded-lg bg-green-50 p-3 text-sm text-green-700">Gespeichert.</p>}
       </div>
 
-      <section className="rounded-2xl border border-neutral-200 bg-white p-5">
-        <h2 className="font-semibold">Benachrichtigungen aufs Handy</h2>
-        <p className="mt-1 text-sm text-neutral-500">
-          Bei jeder neuen Buchung, Absage oder Verschiebung kommt eine Mitteilung auf dieses Gerät.
-          {devices > 0 ? ` Aktiv auf ${devices} ${devices === 1 ? "Gerät" : "Geräten"}.` : ""}
+      <section className="space-y-3 rounded-2xl border border-neutral-200 bg-white p-5">
+        <h2 className="font-semibold">E-Mail-Versand</h2>
+        <dl className="grid gap-3 text-sm sm:grid-cols-2">
+          <div>
+            <dt className="text-neutral-500">Versand über</dt>
+            <dd className={`mt-0.5 font-medium ${transport === "log" ? "text-red-700" : "text-green-700"}`}>
+              {transport === "resend" ? "Resend ✓" : transport === "smtp" ? "Gmail / SMTP ✓" : "nicht eingerichtet ✗"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-neutral-500">Info über neue Buchungen an</dt>
+            <dd className="mt-0.5 font-medium">{alerts.length ? alerts.join(", ") : <span className="text-red-700">niemanden (NOTIFY_EMAIL fehlt)</span>}</dd>
+          </div>
+        </dl>
+        {transport === "log" && (
+          <p className="rounded-lg bg-amber-50 p-3 text-xs text-amber-900">
+            Wird auf Netlify eingestellt (Site configuration → Environment variables): <code>SMTP_URL</code> oder <code>RESEND_API_KEY</code>, dazu{" "}
+            <code>EMAIL_FROM</code> und <code>NOTIFY_EMAIL</code>. Anleitung: <code>LAUNCH.md</code> im Projekt.
+          </p>
+        )}
+        {test && <p className={`rounded-lg p-3 text-sm ${test.ok ? "bg-green-50 text-green-800" : "bg-red-50 text-red-800"}`}>{test.text}</p>}
+        <form action={sendSettingsTestEmail} className="flex flex-wrap items-end gap-2">
+          <label className={`${label} min-w-56 flex-1`}>
+            Test-E-Mail senden an
+            <input name="to" type="email" defaultValue={alerts[0] ?? ""} className={input} />
+          </label>
+          <button className="rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-medium hover:bg-neutral-100">Test senden</button>
+        </form>
+        <p className="text-xs text-neutral-500">
+          Handy-Benachrichtigungen schaltet jede:r unter{" "}
+          <Link href="/admin/account" className="underline">Mein Konto</Link> selbst ein
+          {devices > 0 ? ` (aktiv auf ${devices} ${devices === 1 ? "Gerät" : "Geräten"})` : ""}.
         </p>
-        <div className="mt-3">
-          <PushToggle publicKey={vapid.publicKey} />
-        </div>
       </section>
 
       <form action={saveSettings} className="space-y-8">

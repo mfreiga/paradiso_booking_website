@@ -1,6 +1,10 @@
 # Netlify build configuration. The Next.js runtime plugin is added automatically.
 [build]
-  command = "npm run build"
+  # Apply pending database migrations first, then build. If a migration fails
+  # the build stops and Netlify keeps the previous version online — so code and
+  # database can never get out of step (the site used to break when a deploy
+  # went out before someone ran the migration by hand).
+  command = "npx prisma migrate deploy && npm run build"
 
 [build.environment]
   NODE_VERSION = "20"

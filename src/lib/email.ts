@@ -445,3 +445,24 @@ export async function sendReviewRequest(d: ReviewRequestData): Promise<void> {
     text: `${en ? "Hi" : "Hallo"} ${d.customerName},\n\n${intro}\n\n${d.reviewUrl}`,
   });
 }
+
+// ── setup check (admin settings) ─────────────────────────────────────────────
+/** Where shop alerts go — shown on the settings page. */
+export function shopAlertRecipients(): string[] {
+  return shopRecipients();
+}
+
+/** Short test email so the owner can check delivery from the admin area. */
+export async function sendTestEmail(to: string): Promise<void> {
+  await deliver({
+    to,
+    subject: "Test: E-Mails von Hairstyling Paradiso funktionieren",
+    html: layout(
+      "de",
+      `<p>Wenn du diese E-Mail siehst, ist der E-Mail-Versand der Website richtig eingerichtet.</p>
+    <p style="font-size:14px;color:#525252">Kund:innen bekommen damit Bestätigungen, Erinnerungen und Absagen.</p>`,
+      `${SHOP.name} · Test aus dem Adminbereich`,
+    ),
+    text: "Wenn du diese E-Mail siehst, ist der E-Mail-Versand der Website richtig eingerichtet.",
+  });
+}

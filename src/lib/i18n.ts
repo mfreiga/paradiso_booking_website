@@ -200,6 +200,8 @@ const de = {
     send: "Bewertung abschicken",
     sending: "Wird gesendet…",
     thanks: "Danke! Wir schauen kurz drüber und schalten die Bewertung dann frei.",
+    googleAsk: "Schön, dass es dir gefallen hat! Magst du uns auch kurz auf Google bewerten? Das hilft uns sehr.",
+    googleButton: "Auf Google bewerten",
   },
 };
 
@@ -401,6 +403,8 @@ const en: Dict = {
     send: "Send rating",
     sending: "Sending…",
     thanks: "Thanks! We'll have a quick look and then publish it.",
+    googleAsk: "Glad you enjoyed it! Would you also leave us a quick rating on Google? It helps us a lot.",
+    googleButton: "Rate us on Google",
   },
 };
 

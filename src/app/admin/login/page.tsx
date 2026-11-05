@@ -11,7 +11,7 @@ export default async function AdminLoginPage({
   const { error } = await searchParams;
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-neutral-50 p-4">
+    <main className="flex min-h-screen items-center justify-center bg-neutral-50 p-4 text-neutral-900">
       <div className="w-full max-w-sm rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm">
         <h1 className="text-xl font-semibold text-neutral-900">Paradiso Admin</h1>
         <p className="mt-1 text-sm text-neutral-500">Bitte melde dich an.</p>
@@ -21,7 +21,7 @@ export default async function AdminLoginPage({
             <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
               {error === "locked"
                 ? "Zu viele Fehlversuche. Bitte in 15 Minuten nochmal probieren."
-                : "E-Mail oder Passwort ist falsch."}
+                : "Benutzername/E-Mail oder Passwort ist falsch."}
             </div>
           )}
           <div>
@@ -29,15 +29,17 @@ export default async function AdminLoginPage({
               htmlFor="email"
               className="block text-sm font-medium text-neutral-700"
             >
-              E-Mail
+              Benutzername oder E-Mail
             </label>
             <input
               id="email"
               name="email"
-              type="email"
+              type="text"
               required
               autoComplete="username"
-              defaultValue="admin@paradiso.test"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900"
             />
           </div>

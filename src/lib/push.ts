@@ -31,10 +31,19 @@ export interface PushMessage {
   url?: string;
 }
 
-/** Sends to every registered admin device. Never throws. */
-export async function notifyShop(msg: PushMessage): Promise<void> {
+export interface PushTarget {
+  /** Barbers whose devices should also get it (e.g. the booking's barber). */
+  stylistIds?: (string | null | undefined)[];
+  /** Don't notify the person who did it themselves. */
+  excludeUserId?: string;
+}
+
+type SubWhere = NonNullable<Parameters<typeof prisma.pushSubscription.findMany>[0]>["where"];
+
+/** Sends `msg` to every subscription matching `where`; prunes dead devices. Never throws. */
+async function sendTo(where: SubWhere, msg: PushMessage): Promise<void> {
   try {
-    const subs = await prisma.pushSubscription.findMany();
+    const subs = await prisma.pushSubscription.findMany({ where });
     if (subs.length === 0) return;
     const { publicKey, privateKey } = await getVapidKeys();
     const contact = (process.env.NOTIFY_EMAIL ?? "").split(",")[0]?.trim();
@@ -54,6 +63,33 @@ export async function notifyShop(msg: PushMessage): Promise<void> {
       }),
     );
   } catch (e) {
-    console.error("notifyShop failed:", e);
+    console.error("push send failed:", e);
   }
+}
+
+/**
+ * Sends to the owner's devices (shared owner login + OWNER accounts) and to
+ * the devices of the given barbers. Barbers never get other barbers' news.
+ */
+export async function notifyStaff(msg: PushMessage, target: PushTarget = {}): Promise<void> {
+  const stylistIds = (target.stylistIds ?? []).filter((x): x is string => Boolean(x));
+  await sendTo(
+    {
+      OR: [
+        { userId: null },
+        { user: { isActive: true, role: { in: ["OWNER", "ADMIN"] } } },
+        ...(stylistIds.length ? [{ user: { isActive: true, stylistId: { in: stylistIds } } }] : []),
+      ],
+      ...(target.excludeUserId ? { NOT: { userId: target.excludeUserId } } : {}),
+    },
+    msg,
+  );
+}
+
+/** Owner devices only. */
+export const notifyShop = (msg: PushMessage) => notifyStaff(msg);
+
+/** Only one person's own devices (e.g. the "test notification" button). null = shared owner login. */
+export async function notifyUserDevices(userId: string | null, msg: PushMessage): Promise<void> {
+  await sendTo({ userId }, msg);
 }

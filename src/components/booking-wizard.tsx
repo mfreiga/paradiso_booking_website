@@ -31,6 +31,7 @@ type Barber = {
   name: string;
   gender: string;
   bio: string | null;
+  bioEn?: string | null;
   photoUrl: string | null;
   serviceIds: string[];
   workingWeekdays: number[];
@@ -446,7 +447,7 @@ export function BookingWizard({ categories, barbers, bookingWindowDays, locale, 
                       ) : (
                         <div className="mt-0.5 text-xs text-neutral-400">{t.noReviews}</div>
                       )}
-                      {b.bio && <p className="mt-1 line-clamp-2 text-xs text-neutral-400">{tName(b.bio, locale)}</p>}
+                      {b.bio && <p className="mt-1 line-clamp-2 text-xs text-neutral-400">{tName(b.bio, locale, b.bioEn)}</p>}
                       {b.reviews[0]?.comment && (
                         <p className="mt-1 line-clamp-2 text-xs italic text-neutral-400">„{b.reviews[0].comment}“</p>
                       )}

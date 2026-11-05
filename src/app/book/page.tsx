@@ -70,6 +70,7 @@ export default async function BookPage() {
       name: b.name,
       gender: b.gender,
       bio: b.bio,
+      bioEn: b.bioEn,
       photoUrl: b.photoUrl,
       serviceIds: b.services.map((x) => x.serviceId),
       workingWeekdays: [...new Set(b.workingHours.map((w) => w.weekday))],

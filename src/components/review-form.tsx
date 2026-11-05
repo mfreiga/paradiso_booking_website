@@ -5,6 +5,10 @@ import { submitReview } from "@/app/review/[token]/actions";
 import { dict, type Locale } from "@/lib/i18n";
 import { REVIEW_COMMENT_MAX } from "@/lib/booking-limits";
 
+// Opens the salon's Google profile, where "Write a review" is one tap away.
+const GOOGLE_PROFILE_URL =
+  "https://www.google.com/maps/search/?api=1&query=Hairstyling+Paradiso+Augustenstra%C3%9Fe+72+M%C3%BCnchen";
+
 export function ReviewForm({
   token,
   barberName,
@@ -24,9 +28,23 @@ export function ReviewForm({
 
   if (done) {
     return (
-      <p className="rounded-lg bg-green-500/10 p-4 text-sm text-green-400">
-        {t.thanks}
-      </p>
+      <div className="space-y-4">
+        <p className="rounded-lg bg-green-500/10 p-4 text-sm text-green-400">{t.thanks}</p>
+        {/* Happy customers: invite a public Google review too — that's what new customers read. */}
+        {rating >= 4 && (
+          <div className="rounded-lg border border-white/10 bg-white/5 p-4 text-sm text-neutral-300">
+            <p>{t.googleAsk}</p>
+            <a
+              href={GOOGLE_PROFILE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-block rounded-full bg-orange-500 px-5 py-2 text-sm font-medium text-white hover:bg-orange-600"
+            >
+              ★ {t.googleButton}
+            </a>
+          </div>
+        )}
+      </div>
     );
   }
 

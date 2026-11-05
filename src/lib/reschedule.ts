@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getAvailabilityRange, getAvailableSlots } from "@/lib/availability";
 import { appointmentIcs } from "@/lib/appointment-ics";
 import { sendMoved } from "@/lib/email";
-import { notifyShop } from "@/lib/push";
+import { notifyStaff } from "@/lib/push";
 import { siteUrl } from "@/lib/site-url";
 
 const TZ = process.env.SHOP_TIMEZONE ?? "Europe/Berlin";
@@ -124,7 +124,10 @@ export async function moveAppointment(opts: {
   }
   if (opts.by === "customer") {
     const fmt = (d: Date) => DateTime.fromJSDate(d).setZone(TZ).setLocale("de").toFormat("ccc dd.MM., HH:mm");
-    await notifyShop({ title: `Verschoben: ${appt.customerName}`, body: `${fmt(appt.startAt)} → ${fmt(start)} · ${barberName}`, url: `/admin/calendar?view=day&date=${date}` });
+    await notifyStaff(
+      { title: `Verschoben: ${appt.customerName}`, body: `${fmt(appt.startAt)} → ${fmt(start)} · ${barberName}`, url: `/admin/calendar?view=day&date=${date}` },
+      { stylistIds: [appt.stylistId, opts.stylistId] }, // old and new barber
+    );
   }
   return { ok: true };
 }

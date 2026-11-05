@@ -16,10 +16,12 @@ export const DEFAULT_HOURS = [1, 2, 3, 4, 5, 6].map((weekday) => ({
 export function BarberProfileFields({
   name = "",
   bio = "",
+  bioEn = "",
   gender = "MALE",
 }: {
   name?: string;
   bio?: string | null;
+  bioEn?: string | null;
   gender?: string;
 }) {
   return (
@@ -38,6 +40,10 @@ export function BarberProfileFields({
       <label className="text-sm font-medium text-neutral-700 sm:col-span-2">
         Kurzbeschreibung (erscheint auf der Website)
         <textarea name="bio" rows={2} maxLength={300} defaultValue={bio ?? ""} className={inputClass} />
+      </label>
+      <label className="text-sm font-medium text-neutral-700 sm:col-span-2">
+        Kurzbeschreibung auf Englisch <span className="font-normal text-neutral-500">(optional, für die englische Seite)</span>
+        <textarea name="bioEn" rows={2} maxLength={300} defaultValue={bioEn ?? ""} className={inputClass} />
       </label>
     </div>
   );

@@ -312,7 +312,7 @@ export default async function HomePage() {
                         <Stars rating={avg} />
                       </p>
                     )}
-                    {st.bio && <p className="mt-2 text-xs leading-relaxed text-neutral-400">{tName(st.bio, locale)}</p>}
+                    {st.bio && <p className="mt-2 text-xs leading-relaxed text-neutral-400">{tName(st.bio, locale, st.bioEn)}</p>}
                   </div>
                 </div>
               );

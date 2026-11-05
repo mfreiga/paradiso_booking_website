@@ -9,6 +9,9 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    // CLI only (migrations). Neon recommends its *direct* (non "-pooler")
+    // connection for migrations; set DIRECT_DATABASE_URL on Netlify for that.
+    // The app itself always connects via DATABASE_URL (src/lib/db-adapter.ts).
+    url: process.env["DIRECT_DATABASE_URL"] ?? process.env["DATABASE_URL"],
   },
 });

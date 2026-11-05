@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DateTime } from "luxon";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth-guard";
+import { isOwner, requireAppointmentAccess } from "@/lib/auth-guard";
 import { dict } from "@/lib/i18n";
 import { qualifiedBarbersFor } from "@/lib/reschedule";
 import { RescheduleForm } from "@/components/reschedule-form";
@@ -11,15 +11,17 @@ import { adminMove, adminMoveDays, adminMoveSlots } from "./actions";
 export const dynamic = "force-dynamic";
 
 export default async function AdminMovePage({ params }: { params: Promise<{ id: string }> }) {
-  await requireAdmin();
   const { id } = await params;
+  const { staff } = await requireAppointmentAccess(id); // barbers: own appointments only
   const appt = await prisma.appointment.findUnique({
     where: { id },
     include: { stylist: { select: { id: true, name: true } }, items: { select: { nameSnapshot: true } } },
   });
   if (!appt) notFound();
   const active = appt.status === "PENDING" || appt.status === "CONFIRMED";
-  const [barbers, setting] = await Promise.all([qualifiedBarbersFor(id), prisma.setting.findUnique({ where: { id: 1 } })]);
+  const [qualified, setting] = await Promise.all([qualifiedBarbersFor(id), prisma.setting.findUnique({ where: { id: 1 } })]);
+  // A barber moves within their own column; only the owner can hand it to someone else.
+  const barbers = isOwner(staff) ? qualified : qualified.filter((b) => b.id === staff.stylistId);
   const t = dict.de;
   const now = DateTime.now().setZone("Europe/Berlin");
   const current = DateTime.fromJSDate(appt.startAt).setZone("Europe/Berlin").setLocale("de").toFormat("cccc, d. LLLL, HH:mm");
