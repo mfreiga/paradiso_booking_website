@@ -64,7 +64,7 @@ const de = {
       },
       {
         q: "Wie bekomme ich den Studentenrabatt?",
-        a: "Zeig beim Termin deinen Studierendenausweis. Schneiden kostet dann 11 €, Schneiden mit 0 mm an den Seiten und Übergang 16 €.",
+        a: "Zeig beim Termin einfach deinen gültigen Studierendenausweis. Die Studentenpreise stehen oben bei den Preisen.",
       },
       {
         q: "Wie kann ich bezahlen?",
@@ -267,7 +267,7 @@ const en: Dict = {
       },
       {
         q: "How do I get the student discount?",
-        a: "Show your student ID at your appointment. A haircut is then €11, a haircut with 0 mm sides and fade €16.",
+        a: "Just show a valid student ID at your appointment. The student prices are listed above under Prices.",
       },
       {
         q: "How can I pay?",
