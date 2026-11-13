@@ -15,6 +15,9 @@ Every push to `main` deploys automatically. The build command is
 `npx prisma migrate deploy && npm run build` (see `netlify.toml`): **database
 migrations run first**. If a migration fails, the build stops and the previous
 version stays online — code and database can't get out of step any more.
+This only happens for production deploys (`main`). Deploy previews of pull
+requests just build, because they share the production database and must not
+change it before the pull request is reviewed and merged.
 
 **Netlify → Site configuration → Environment variables** (scope: *Builds* and *Functions*):
 
