@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { DateTime } from "luxon";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth-guard";
+import { isOwner, requireStaff } from "@/lib/auth-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +19,8 @@ const PX_PER_MIN = 1.1;
 type Search = { view?: string; week?: string; date?: string; barber?: string };
 
 export default async function CalendarPage({ searchParams }: { searchParams: Promise<Search> }) {
-  await requireAdmin();
+  const staff = await requireStaff();
+  const owner = isOwner(staff);
   const sp = await searchParams;
   const view = sp.view === "day" ? "day" : "week";
   const today = DateTime.now().setZone(TZ);
@@ -32,7 +33,8 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   const rangeEnd = rangeStart.plus({ days: view === "day" ? 1 : 7 });
 
   const stylists = await prisma.stylist.findMany({
-    where: { isActive: true },
+    // Barbers only ever load their own column (not just hidden — never queried).
+    where: { isActive: true, ...(owner ? {} : { id: staff.stylistId ?? "__none__" }) },
     orderBy: { displayOrder: "asc" },
     select: { id: true, name: true, workingHours: true },
   });
@@ -101,7 +103,10 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 text-sm">
-          <Link href="/admin/appointments/new" className="rounded-lg bg-orange-500 px-3 py-1.5 font-medium text-white hover:bg-orange-600">
+          <Link
+            href={`/admin/appointments/new${view === "day" ? `?date=${day.toISODate()}${owner && sp.barber ? `&barber=${sp.barber}` : ""}` : ""}`}
+            className="rounded-lg bg-orange-500 px-3 py-1.5 font-medium text-white hover:bg-orange-600"
+          >
             + Termin
           </Link>
           <Link href="/admin/time-off" className={btn}>
@@ -129,16 +134,18 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
             Woche
           </Link>
         </div>
-        <div className="flex flex-wrap gap-1.5">
-          <Link href={href({ barber: undefined })} className={chip(!sp.barber)}>
-            Alle
-          </Link>
-          {stylists.map((s) => (
-            <Link key={s.id} href={href({ barber: s.id })} className={chip(sp.barber === s.id)}>
-              {s.name}
+        {owner && (
+          <div className="flex flex-wrap gap-1.5">
+            <Link href={href({ barber: undefined })} className={chip(!sp.barber)}>
+              Alle
             </Link>
-          ))}
-        </div>
+            {stylists.map((s) => (
+              <Link key={s.id} href={href({ barber: s.id })} className={chip(sp.barber === s.id)}>
+                {s.name}
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
 
       {view === "week" ? (

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { DateTime } from "luxon";
 import { prisma } from "@/lib/prisma";
 import { sendCancellation } from "@/lib/email";
-import { notifyShop } from "@/lib/push";
+import { notifyStaff } from "@/lib/push";
 import { siteUrl } from "@/lib/site-url";
 import { moveAppointment, moveOpenDays, moveSlots, type MoveError } from "@/lib/reschedule";
 
@@ -49,7 +49,10 @@ export async function cancelBooking(formData: FormData) {
     console.error("cancellation email failed:", e);
   }
   const when = DateTime.fromJSDate(appt.startAt).setZone("Europe/Berlin").setLocale("de").toFormat("ccc dd.MM., HH:mm");
-  await notifyShop({ title: `Abgesagt: ${when}`, body: `${appt.customerName} · ${appt.stylist.name} · Die Zeit ist wieder frei.` });
+  await notifyStaff(
+    { title: `Abgesagt: ${when}`, body: `${appt.customerName} · ${appt.stylist.name} · Die Zeit ist wieder frei.` },
+    { stylistIds: [appt.stylistId] },
+  );
 
   revalidatePath(`/booking/${token}`);
   revalidatePath("/admin/appointments");

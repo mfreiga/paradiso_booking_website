@@ -111,6 +111,8 @@ model Stylist {
   name         String
   gender       StaffGender
   bio          String?
+  /// English bio for the EN site (falls back to a known translation, then German).
+  bioEn        String?
   photoUrl     String?
   /// Uploaded portrait (resized client-side, ≤ 1 MB), served by /stylist-photo/[id].
   photoData    Bytes?
@@ -122,6 +124,8 @@ model Stylist {
   timeOff      TimeOff[]
   appointments Appointment[]
   reviews      Review[]
+  /// Staff login linked to this barber (sees only their own appointments).
+  user         User?
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
 
@@ -280,9 +284,19 @@ model User {
   email         String?   @unique
   emailVerified DateTime?
   image         String?
-  role          String    @default("ADMIN")
+  /// "OWNER" (full admin) or "BARBER" (own appointments only). Legacy "ADMIN" = owner.
+  role          String    @default("BARBER")
+  /// Login name, e.g. "steven" — barbers don't need an email address.
+  username      String?   @unique
+  /// scrypt hash, see src/lib/password.ts. Never the password itself.
+  passwordHash  String?
+  stylistId     String?   @unique
+  stylist       Stylist?  @relation(fields: [stylistId], references: [id], onDelete: SetNull)
+  isActive      Boolean   @default(true)
+  lastLoginAt   DateTime? @db.Timestamptz(3)
   accounts      Account[]
   sessions      Session[]
+  pushSubscriptions PushSubscription[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -337,5 +351,10 @@ model PushSubscription {
   p256dh    String
   auth      String
   label     String?
+  /// Whose device this is. Null = registered by the shared owner login.
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+
+  @@index([userId])
 }

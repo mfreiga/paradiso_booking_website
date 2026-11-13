@@ -1,16 +1,19 @@
 import Link from "next/link";
-import { requireAdmin } from "@/lib/auth-guard";
+import { isOwner, requireStaff } from "@/lib/auth-guard";
 import { signOut } from "@/auth";
 
-const nav = [
+// `owner: true` = only the owner sees it (barbers only work with their own bookings).
+const allNav = [
   { href: "/admin", label: "Übersicht" },
   { href: "/admin/appointments", label: "Termine" },
   { href: "/admin/calendar", label: "Kalender" },
   { href: "/admin/time-off", label: "Zeit blockieren" },
-  { href: "/admin/services", label: "Leistungen" },
-  { href: "/admin/barbers", label: "Friseure" },
-  { href: "/admin/reviews", label: "Bewertungen" },
-  { href: "/admin/settings", label: "Einstellungen" },
+  { href: "/admin/services", label: "Leistungen", owner: true },
+  { href: "/admin/barbers", label: "Friseure", owner: true },
+  { href: "/admin/team", label: "Team-Zugänge", owner: true },
+  { href: "/admin/reviews", label: "Bewertungen", owner: true },
+  { href: "/admin/settings", label: "Einstellungen", owner: true },
+  { href: "/admin/account", label: "Mein Konto" },
 ];
 
 export default async function AdminLayout({
@@ -18,7 +21,8 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await requireAdmin();
+  const staff = await requireStaff();
+  const nav = allNav.filter((item) => !item.owner || isOwner(staff));
 
   async function doSignOut() {
     "use server";
@@ -63,7 +67,10 @@ export default async function AdminLayout({
             </nav>
           </details>
           <div className="hidden items-center gap-3 text-sm text-neutral-500 xl:flex">
-            <span className="hidden xl:inline">{session.user?.email}</span>
+            <span className="hidden xl:inline">
+              {staff.name}
+              {!isOwner(staff) && " · Friseur:in"}
+            </span>
             <form action={doSignOut}>
               <button
                 type="submit"

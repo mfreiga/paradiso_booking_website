@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { DateTime } from "luxon";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth-guard";
+import { isOwner, requireStaff, stylistScope } from "@/lib/auth-guard";
 import { createTimeOff, deleteTimeOff } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -36,18 +36,19 @@ export default async function TimeOffPage({
 }: {
   searchParams: Promise<{ error?: string; saved?: string }>;
 }) {
-  await requireAdmin();
+  const staff = await requireStaff();
+  const owner = isOwner(staff);
   const sp = await searchParams;
   const now = new Date();
 
   const [stylists, entries] = await Promise.all([
     prisma.stylist.findMany({
-      where: { isActive: true },
+      where: { isActive: true, ...(owner ? {} : { id: staff.stylistId ?? "__none__" }) },
       orderBy: { displayOrder: "asc" },
       select: { id: true, name: true },
     }),
     prisma.timeOff.findMany({
-      where: { endAt: { gt: now } },
+      where: { endAt: { gt: now }, ...stylistScope(staff) },
       orderBy: { startAt: "asc" },
       include: { stylist: { select: { name: true } } },
     }),
@@ -104,11 +105,15 @@ export default async function TimeOffPage({
       <form action={createTimeOff} className="mt-6 grid gap-4 rounded-2xl border border-neutral-200 bg-white p-4 sm:grid-cols-2">
         <label className="text-sm font-medium text-neutral-700 sm:col-span-2">
           Wer?
-          <select name="stylistId" required defaultValue="" className={input}>
-            <option value="" disabled>
-              Bitte wählen…
-            </option>
-            <option value="ALL">Alle Friseur:innen (Salon geschlossen)</option>
+          <select name="stylistId" required defaultValue={owner ? "" : (staff.stylistId ?? "")} className={input}>
+            {owner && (
+              <>
+                <option value="" disabled>
+                  Bitte wählen…
+                </option>
+                <option value="ALL">Alle Friseur:innen (Salon geschlossen)</option>
+              </>
+            )}
             {stylists.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}

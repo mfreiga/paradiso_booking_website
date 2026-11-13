@@ -48,6 +48,7 @@ export async function saveBarber(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const name = String(formData.get("name") ?? "").trim().slice(0, 60);
   const bio = String(formData.get("bio") ?? "").trim().slice(0, 300) || null;
+  const bioEn = String(formData.get("bioEn") ?? "").trim().slice(0, 300) || null;
   const gender = formData.get("gender") === "FEMALE" ? "FEMALE" : "MALE";
   const hours = readHours(formData);
 
@@ -63,6 +64,7 @@ export async function saveBarber(formData: FormData) {
       data: {
         name,
         bio,
+        bioEn,
         gender,
         displayOrder: (last?.displayOrder ?? 0) + 1,
         workingHours: { create: hours },
@@ -78,7 +80,7 @@ export async function saveBarber(formData: FormData) {
     : null;
 
   await prisma.$transaction([
-    prisma.stylist.update({ where: { id }, data: { name, bio, gender } }),
+    prisma.stylist.update({ where: { id }, data: { name, bio, bioEn, gender } }),
     prisma.workingHours.deleteMany({ where: { stylistId: id } }),
     ...(hours.length
       ? [prisma.workingHours.createMany({ data: hours.map((h) => ({ ...h, stylistId: id })) })]

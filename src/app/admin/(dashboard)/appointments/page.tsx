@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { DateTime } from "luxon";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth-guard";
+import { isOwner, requireStaff, stylistScope } from "@/lib/auth-guard";
 import { formatDuration, formatEur } from "@/lib/format";
 import { setAppointmentStatus } from "./actions";
 import type { Prisma } from "@/generated/prisma/client";
@@ -35,14 +35,16 @@ export default async function AppointmentsAdminPage({
 }: {
   searchParams: Promise<{ tab?: string; q?: string; barber?: string }>;
 }) {
-  await requireAdmin();
+  const staff = await requireStaff();
+  const owner = isOwner(staff);
   const sp = await searchParams;
   const tab: Tab = TABS.some(([k]) => k === sp.tab) ? (sp.tab as Tab) : "upcoming";
   const q = (sp.q ?? "").trim().slice(0, 100);
   const startOfToday = DateTime.now().setZone(TZ).startOf("day").toUTC().toJSDate();
 
   const where: Prisma.AppointmentWhereInput = {
-    ...(sp.barber ? { stylistId: sp.barber } : {}),
+    ...(owner && sp.barber ? { stylistId: sp.barber } : {}),
+    ...stylistScope(staff), // barbers: only their own bookings, whatever the URL says
     ...(tab === "upcoming"
       ? { startAt: { gte: startOfToday }, status: { in: ["PENDING", "CONFIRMED", "COMPLETED", "NO_SHOW"] } }
       : tab === "past"
@@ -119,6 +121,7 @@ export default async function AppointmentsAdminPage({
           <button className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm hover:bg-neutral-100">Suchen</button>
         </form>
       </div>
+      {owner && (
       <div className="mt-2 flex flex-wrap gap-1.5">
         <Link href={link({ barber: undefined })} className={chip(!sp.barber)}>
           Alle
@@ -129,6 +132,7 @@ export default async function AppointmentsAdminPage({
           </Link>
         ))}
       </div>
+      )}
 
       <div className="mt-6 space-y-5">
         {appts.length === 0 && <p className="text-sm text-neutral-400">{q ? `Nichts gefunden für „${q}“.` : "Keine Termine."}</p>}

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { DateTime } from "luxon";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth-guard";
+import { isOwner, requireStaff, stylistScope } from "@/lib/auth-guard";
 import { formatEur } from "@/lib/format";
 import { emailTransport } from "@/lib/email";
 import { setAppointmentStatus } from "./appointments/actions";
@@ -27,8 +27,15 @@ const statusClass: Record<string, string> = {
   NO_SHOW: "bg-orange-100 text-orange-800",
 };
 
-export default async function AdminDashboardPage() {
-  await requireAdmin();
+export default async function AdminDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ nur?: string }>;
+}) {
+  const staff = await requireStaff();
+  const owner = isOwner(staff);
+  const scope = stylistScope(staff); // barbers: their own column only
+  const { nur } = await searchParams;
   const now = DateTime.now().setZone(TZ);
   const todayStart = now.startOf("day");
   const weekStart = now.startOf("week");
@@ -36,33 +43,35 @@ export default async function AdminDashboardPage() {
 
   const [today, week, recent, offs, pendingReviews, unconfirmed, pushDevices] = await Promise.all([
     prisma.appointment.findMany({
-      where: { startAt: { gte: utc(todayStart), lt: utc(todayStart.plus({ days: 1 })) } },
+      where: { ...scope, startAt: { gte: utc(todayStart), lt: utc(todayStart.plus({ days: 1 })) } },
       orderBy: { startAt: "asc" },
       include: { stylist: { select: { name: true } }, items: { select: { nameSnapshot: true } } },
     }),
     prisma.appointment.findMany({
       where: {
+        ...scope,
         startAt: { gte: utc(weekStart), lt: utc(weekStart.plus({ days: 7 })) },
         status: { in: [...ACTIVE, "COMPLETED"] },
       },
       select: { startAt: true, totalPriceCents: true },
     }),
     prisma.appointment.findMany({
-      where: { source: "CUSTOMER" },
+      where: { ...scope, source: "CUSTOMER" },
       orderBy: { createdAt: "desc" },
       take: 5,
       include: { stylist: { select: { name: true } } },
     }),
     prisma.timeOff.findMany({
-      where: { endAt: { gt: new Date() } },
+      where: { ...scope, endAt: { gt: new Date() } },
       orderBy: { startAt: "asc" },
       take: 20,
       include: { stylist: { select: { name: true } } },
     }),
-    prisma.review.count({ where: { status: "PENDING" } }),
+    owner ? prisma.review.count({ where: { status: "PENDING" } }) : Promise.resolve(0),
     // Online bookings of the last 2 weeks whose confirmation email never went out.
     prisma.appointment.count({
       where: {
+        ...scope,
         source: "CUSTOMER",
         customerEmail: { not: "" },
         confirmationSentAt: null,
@@ -70,7 +79,8 @@ export default async function AdminDashboardPage() {
         startAt: { gte: utc(now) },
       },
     }),
-    prisma.pushSubscription.count(),
+    // This person's own devices (shared owner login = devices without an account).
+    prisma.pushSubscription.count({ where: { userId: staff.isEnvAdmin ? null : staff.id } }),
   ]);
 
   const z = (d: Date) => DateTime.fromJSDate(d).setZone(TZ);
@@ -96,8 +106,8 @@ export default async function AdminDashboardPage() {
   const kpis = [
     { label: "Termine heute", value: String(todayActive.length), href: `/admin/calendar?view=day&date=${todayStart.toISODate()}` },
     { label: "Diese Woche", value: String(week.length), href: "/admin/calendar" },
-    { label: "Umsatz Woche (ca.)", value: formatEur(weekRevenue), href: "/admin/appointments" },
-    { label: "Bewertungen offen", value: String(pendingReviews), href: "/admin/reviews" },
+    { label: owner ? "Umsatz Woche (ca.)" : "Mein Umsatz Woche (ca.)", value: formatEur(weekRevenue), href: "/admin/appointments" },
+    ...(owner ? [{ label: "Bewertungen offen", value: String(pendingReviews), href: "/admin/reviews" }] : []),
   ];
   const card = "rounded-2xl border border-neutral-200 bg-white p-5";
 
@@ -105,7 +115,7 @@ export default async function AdminDashboardPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Übersicht</h1>
+          <h1 className="text-2xl font-semibold">{owner ? "Übersicht" : `Hallo ${staff.name}`}</h1>
           <p className="mt-1 text-sm text-neutral-500">{now.setLocale("de").toFormat("cccc, d. LLLL")}</p>
         </div>
         <div className="flex flex-wrap gap-2 text-sm">
@@ -131,16 +141,24 @@ export default async function AdminDashboardPage() {
           ).
         </p>
       )}
+      {nur === "inhaber" && (
+        <p className="rounded-xl border border-neutral-200 bg-white p-3 text-sm text-neutral-600">Diese Seite kann nur der Inhaber öffnen.</p>
+      )}
+      {!owner && !staff.stylistId && (
+        <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          Dein Zugang ist noch keinem Friseur-Kalender zugeordnet. Bitte beim Inhaber melden.
+        </p>
+      )}
       {pushDevices === 0 && (
         <p className="rounded-xl border border-neutral-200 bg-white p-3 text-sm text-neutral-600">
           Tipp: Unter{" "}
-          <Link href="/admin/settings" className="underline">
-            Einstellungen
+          <Link href="/admin/account" className="underline">
+            Mein Konto
           </Link>{" "}
-          kannst du Benachrichtigungen fürs Handy einschalten, dann siehst du neue Buchungen sofort.
+          kannst du die App aufs Handy holen und Benachrichtigungen einschalten, dann siehst du neue Buchungen sofort.
         </p>
       )}
-      {emailTransport() === "log" && (
+      {owner && emailTransport() === "log" && (
         <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
           E-Mails sind noch nicht eingerichtet: Kund:innen bekommen keine Bestätigung und du keine Info über neue Buchungen.
         </p>
