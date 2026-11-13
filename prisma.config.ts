@@ -10,8 +10,10 @@ export default defineConfig({
   },
   datasource: {
     // CLI only (migrations). Neon recommends its *direct* (non "-pooler")
-    // connection for migrations; set DIRECT_DATABASE_URL on Netlify for that.
+    // connection for migrations. DIRECT_DATABASE_URL wins if set; otherwise the
+    // direct address is derived from DATABASE_URL — Neon's direct host is the
+    // pooled one without "-pooler" — so nothing extra has to be configured.
     // The app itself always connects via DATABASE_URL (src/lib/db-adapter.ts).
-    url: process.env["DIRECT_DATABASE_URL"] ?? process.env["DATABASE_URL"],
+    url: process.env["DIRECT_DATABASE_URL"] || process.env["DATABASE_URL"]?.replace(/-pooler(?=\.)/, ""),
   },
 });

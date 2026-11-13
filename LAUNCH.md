@@ -21,7 +21,7 @@ version stays online — code and database can't get out of step any more.
 | Variable | Value | Why |
 |---|---|---|
 | `DATABASE_URL` | Neon connection string (pooled, host contains `-pooler`) | the app's database |
-| `DIRECT_DATABASE_URL` | Neon connection string **without** `-pooler` (Neon → Connection details → uncheck "Connection pooling") | migrations during the build |
+| `DIRECT_DATABASE_URL` | *optional* — Neon connection string **without** `-pooler`. Not needed: if empty, the build derives it from `DATABASE_URL` by dropping `-pooler`. Only set it if the database ever moves to a provider where that doesn't hold. | migrations during the build |
 | `AUTH_SECRET` | `openssl rand -base64 33` | signs the admin logins |
 | `ADMIN_EMAILS` | Bassam's email | owner master login (always works) |
 | `ADMIN_PASSWORD` | long random password, ≥ 16 characters | owner master login |
